@@ -11,21 +11,51 @@ Model files are **gitignored** (large binaries). Download them manually and plac
 
 Combined footprint must remain ≤ 20 MB.
 
-## Download Instructions (Sanyam — Day 1)
+## Pre-Sprint Setup (Run in Order)
+
+> Uses `uv` for fast dependency resolution. Python 3.12 required (mediapipe has no 3.13 wheels yet).
 
 ```bash
-# Create models directory
-mkdir -p ml/models
+# 0. Install uv (once)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# BlazeFace — from MediaPipe model zoo
-# https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite
-# Rename to blazeface.tflite
+# 1. Create venv with Python 3.12
+cd ml/
+uv python install 3.12          # downloads 3.12 if not present
+uv venv venv --python 3.12
 
-# MobileFaceNet base weights (pre fine-tuning)
-# Source: https://github.com/sirius-ai/MobileFaceNet_TF
-# After demographic fine-tuning + INT8 quantisation, export to:
-#   ml/models/mobilefacenet_indian.tflite
+# 2. Install ML toolchain (fast — uv resolves in ~2s)
+uv pip install --python venv/Scripts/python.exe -r requirements.txt
+
+# 3. Verify toolchain works (TFLite smoke test)
+venv/Scripts/python.exe scripts/setup_toolchain.py
+
+# 3. Download BlazeFace + MobileFaceNet base weights
+python ml/scripts/download_models.py
+
+# 4. Prepare Indian demographic dataset (see Dataset section below)
+python ml/scripts/prepare_dataset.py --input_dir data/raw/your_dataset
+
+# 5. Augment training set
+python ml/augmentation/augment.py \
+    --input_dir data/filtered_indian/train \
+    --output_dir data/augmented \
+    --augmentations_per_image 5
+
+# Day 1 →
+# python ml/scripts/quantise.py   (converts base model to INT8 TFLite)
 ```
+
+### Dataset Options (MS-Celeb-1M is no longer available)
+
+| Option | Notes |
+|---|---|
+| **VGGFace2** (recommended) | ~3.3M images, diverse. Request at robots.ox.ac.uk/~vgg/data/vgg_face2/ |
+| **CASIA-WebFace** | ~500K images. Academic request required. |
+| **IJB-C** | NIST dataset, strong demographic diversity. Requires NIST agreement. |
+| **Fallback** | Small consented set + heavy augmentation via augment.py. Sufficient for hackathon demo. |
+
+`prepare_dataset.py` filters any of the above by ITA skin tone score + head pose.
 
 ## Fine-Tuning Pipeline
 
