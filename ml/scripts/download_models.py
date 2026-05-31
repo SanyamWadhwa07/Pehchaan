@@ -4,9 +4,9 @@ Run from repo root: python ml/scripts/download_models.py
 
 What this downloads:
   1. BlazeFace short-range TFLite — from MediaPipe model zoo (official Google source)
-  2. MobileFaceNet base weights (Keras .h5) — from sirius-ai/MobileFaceNet_TF release
-     This is the PRE-fine-tuning base. Sanyam will fine-tune on Indian demographic data
-     and then INT8-quantise for TFLite (Day 1 task).
+  2. MobileFaceNet ONNX (w600k_mbf) — via InsightFace buffalo_sc auto-download
+     Source: deepinsight/insightface, trained on WebFace600K, 13.6 MB
+     This is the PRE-fine-tuning base. Day 1: quantise.py converts it to INT8 TFLite.
 """
 
 import os

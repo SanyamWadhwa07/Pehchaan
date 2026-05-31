@@ -46,7 +46,7 @@ from tqdm import tqdm
 try:
     import mediapipe as mp
 except ImportError:
-    raise ImportError("Run: pip install mediapipe==0.10.9")
+    raise ImportError("Run: uv pip install mediapipe>=0.10.30")
 
 
 # ITA < 28° → Type IV–VI skin (darker tones — target for Indian demographic filter)

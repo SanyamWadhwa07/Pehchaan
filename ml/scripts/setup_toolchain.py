@@ -3,7 +3,7 @@ Pre-Sprint: Verify TFLite toolchain is correctly installed and working.
 Run from repo root: python ml/scripts/setup_toolchain.py
 
 Checks:
-  1. Python version (3.9–3.11 required for TF 2.13)
+  1. Python version (3.9–3.12 required for TF 2.21)
   2. TensorFlow + TFLite converter
   3. OpenCV
   4. MediaPipe
@@ -31,13 +31,13 @@ def main():
 
     # Python version
     major, minor = sys.version_info[:2]
-    ok = 3 <= major and 9 <= minor <= 11
+    ok = major == 3 and 9 <= minor <= 12
     print(f"  {'[ok]' if ok else '[WARN]'} Python {major}.{minor}" +
-          ("" if ok else " — TF 2.13 officially supports 3.9–3.11"))
+          ("" if ok else " — TF 2.21 supports 3.9–3.12"))
 
     # TensorFlow
     if not check("TensorFlow", lambda: __import__("tensorflow").__version__):
-        failures.append("pip install tensorflow==2.13.0")
+        failures.append("pip install tensorflow>=2.20.0")
 
     # TFLite converter smoke test
     def tflite_smoke():
@@ -45,19 +45,24 @@ def main():
         import numpy as np
 
         # Tiny model: single dense layer
-        inp = tf.keras.Input(shape=(128,))
+        inp = tf.keras.Input(shape=(128,), name="input_1")
         out = tf.keras.layers.Dense(64, activation="relu")(inp)
         model = tf.keras.Model(inp, out)
 
         converter = tf.lite.TFLiteConverter.from_keras_model(model)
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
         converter.target_spec.supported_types = [tf.int8]
+        # Use positional list — avoids tensor name mismatches across TF versions
         converter.representative_dataset = lambda: (
-            {"input_1": np.random.rand(1, 128).astype("float32")} for _ in range(10)
+            [np.random.rand(1, 128).astype("float32")] for _ in range(100)
         )
         tflite_model = converter.convert()
 
-        interpreter = tf.lite.Interpreter(model_content=tflite_model)
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            interpreter = tf.lite.Interpreter(model_content=tflite_model)  # type: ignore[attr-defined]
+
         interpreter.allocate_tensors()
         inp_details = interpreter.get_input_details()
         out_details = interpreter.get_output_details()
@@ -75,7 +80,7 @@ def main():
 
     # MediaPipe
     if not check("MediaPipe", lambda: __import__("mediapipe").__version__):
-        failures.append("pip install mediapipe==0.10.9")
+        failures.append("pip install mediapipe>=0.10.30")
 
     # Albumentations
     if not check("Albumentations", lambda: __import__("albumentations").__version__):
