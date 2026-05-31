@@ -21,8 +21,9 @@ jobs:
           # no cache: lock file not committed (RN native project, large binary deps)
 
       - name: Install dependencies
-        run: npm install --ignore-scripts
+        run: npm install --ignore-scripts --legacy-peer-deps
         # --ignore-scripts: skips postinstall native build steps (not needed for lint/typecheck)
+        # --legacy-peer-deps: RN ecosystem has peer dep conflicts across packages
 
       - name: Lint
         run: npm run lint
