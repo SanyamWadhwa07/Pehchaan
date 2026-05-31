@@ -1,0 +1,224 @@
+openapi: 3.0.3
+info:
+  title: Pehchaan API
+  description: |
+    Integration-ready API surface for Pehchaan offline workforce authentication.
+    Designed for future NHAI DataLink 3.0 / NHAI portal integration.
+    Owner: Maulik — complete by Day 3.
+  version: 0.1.0
+
+servers:
+  - url: https://your-project.supabase.co/functions/v1
+    description: Supabase Edge Functions
+
+components:
+  securitySchemes:
+    AdminJWT:
+      type: http
+      scheme: bearer
+      description: Supabase Admin JWT (service_role key — server-side only)
+    SupervisorJWT:
+      type: http
+      scheme: bearer
+      description: Supabase Supervisor JWT (scoped to site_id)
+    DeviceJWT:
+      type: http
+      scheme: bearer
+      description: Device-scoped JWT (site_id claim required)
+
+paths:
+
+  /create-site-package:
+    post:
+      summary: Build encrypted site package
+      description: |
+        Fetches workers for a site, encrypts embeddings with AES-256-GCM,
+        packs zip + thumbnails, uploads to Supabase Storage,
+        and returns signed URL + wrapped AES key.
+      security:
+        - AdminJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [site_id]
+              properties:
+                site_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Package built successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  package_version:
+                    type: integer
+                  signed_url:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+        # TODO (Maulik — Day 3): Add error response schemas
+
+  /download-site-package:
+    get:
+      summary: Download site package
+      description: Validates supervisor credential and returns package + per-site AES key.
+      security:
+        - SupervisorJWT: []
+      parameters:
+        - name: site_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: version
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Package URL and key returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  signed_url:
+                    type: string
+                  wrapped_key:
+                    type: string
+                    description: AES key wrapped with device public key
+
+  /register-worker:
+    post:
+      summary: Register a new worker
+      description: |
+        Creates worker record, triggers embedding generation,
+        queues site package rebuild. Accepts both Admin JWT (central registration)
+        and Device JWT (field registration via supervisor app).
+      security:
+        - AdminJWT: []
+        - DeviceJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, site_id]
+              properties:
+                name:
+                  type: string
+                site_id:
+                  type: string
+                  format: uuid
+                aadhaar_ref_hash:
+                  type: string
+                  description: SHA-256 hash of Aadhaar — raw number never stored
+                language_preference:
+                  type: string
+                  enum: [en, hi]
+                  default: en
+      responses:
+        '201':
+          description: Worker registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  worker_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [registered, pending_embedding]
+
+  /sync-revocations:
+    post:
+      summary: Sync revoked worker IDs
+      description: Device sends last_sync_at; server returns revoked worker IDs since that timestamp.
+      security:
+        - DeviceJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [last_sync_at, site_id]
+              properties:
+                last_sync_at:
+                  type: string
+                  format: date-time
+                site_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Revoked worker IDs since last sync
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revoked_worker_ids:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+
+  /device-revoke:
+    post:
+      summary: Revoke a device
+      description: Invalidates device JWT. Encrypted package becomes inaccessible.
+      security:
+        - AdminJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id]
+              properties:
+                device_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Device revoked
+
+  /push-to-integration:
+    post:
+      summary: "[STUB] Push attendance to NHAI DataLink 3.0"
+      description: |
+        Stub endpoint for future DataLink 3.0 / NHAI portal push.
+        Defined in integration service layer (src/services/integration/).
+        Not live — activate by setting INTEGRATION_API_KEY in .env.
+      security:
+        - AdminJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                attendance_records:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Push acknowledged (stub)
+        '501':
+          description: Integration not configured

@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.yarn/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# ML model weights (large binaries — download via ml/README.md)
+ml/models/
+*.tflite
+*.pt
+*.pth
+
+# React Native build artifacts
+android/build/
+android/.gradle/
+android/app/build/
+android/local.properties
+ios/Pods/
+ios/build/
+*.xcworkspace
+*.xcuserdata
+DerivedData/
+
+# Metro bundler
+.metro-health-check*
+
+# Watchman
+.watchman
+
+# Supabase local dev
+supabase/.branches/
+supabase/.temp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo

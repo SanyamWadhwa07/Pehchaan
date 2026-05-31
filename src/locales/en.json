@@ -1,0 +1,73 @@
+{
+  "common": {
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "next": "Next",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "error": "Something went wrong. Please try again."
+  },
+  "qualityCheck": {
+    "title": "Face Quality Check",
+    "tooBlurry": "Image is too blurry. Please hold still.",
+    "tooDark": "Lighting is too dark. Move to a brighter area.",
+    "tooBright": "Too much glare. Avoid direct sunlight.",
+    "faceNotDetected": "No face detected. Position your face in the frame.",
+    "faceAngleTooHigh": "Please face the camera directly.",
+    "occluded": "Part of your face is covered. Remove obstruction if possible.",
+    "pass": "Quality check passed."
+  },
+  "liveness": {
+    "title": "Liveness Check",
+    "instructionBlink": "Please blink your eyes slowly.",
+    "instructionTurnLeft": "Turn your head to the left.",
+    "instructionTurnRight": "Turn your head to the right.",
+    "timeout": "Check timed out. Please try again.",
+    "failed": "Liveness check failed.",
+    "attempt": "Attempt {{count}} of 3",
+    "supervisorOverride": "Please contact your supervisor."
+  },
+  "authResult": {
+    "success": "Authenticated",
+    "workerName": "Worker: {{name}}",
+    "workerId": "ID: {{id}}",
+    "waitingConfirmation": "Waiting for supervisor confirmation...",
+    "rejected": "Authentication rejected by supervisor.",
+    "failed": "Authentication failed. Worker not recognized."
+  },
+  "supervisorConfirmation": {
+    "title": "Confirm Worker Identity",
+    "instruction": "Verify the person in front of you matches the photo.",
+    "confirm": "Confirm Attendance",
+    "reject": "Reject"
+  },
+  "registration": {
+    "title": "Register New Worker",
+    "name": "Full Name",
+    "role": "Role / Trade",
+    "idNumber": "ID Number",
+    "contactNumber": "Contact Number",
+    "languagePreference": "Preferred Language",
+    "capturePhoto": "Capture Photo",
+    "captureInstruction": "Look directly at the camera.",
+    "submitting": "Submitting registration...",
+    "successQueued": "Registration queued. Will sync when connected.",
+    "successSubmitted": "Worker registered successfully."
+  },
+  "supervisorDashboard": {
+    "title": "Supervisor Dashboard",
+    "attendanceToday": "Today's Attendance",
+    "syncStatus": "Sync Status",
+    "pendingSync": "{{count}} records pending sync",
+    "lastSync": "Last sync: {{time}}",
+    "registerWorker": "Register New Worker"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "english": "English",
+    "hindi": "Hindi"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "common": {
+    "confirm": "पुष्टि करें",
+    "reject": "अस्वीकार करें",
+    "retry": "पुनः प्रयास करें",
+    "cancel": "रद्द करें",
+    "next": "अगला",
+    "submit": "जमा करें",
+    "loading": "लोड हो रहा है...",
+    "error": "कुछ गलत हुआ। कृपया पुनः प्रयास करें।"
+  },
+  "qualityCheck": {
+    "title": "चेहरे की गुणवत्ता जाँच",
+    "tooBlurry": "छवि धुंधली है। कृपया स्थिर रहें।",
+    "tooDark": "प्रकाश बहुत कम है। अधिक रोशनी वाली जगह पर जाएं।",
+    "tooBright": "बहुत अधिक चमक है। सीधी धूप से बचें।",
+    "faceNotDetected": "चेहरा नहीं मिला। अपना चेहरा फ्रेम में रखें।",
+    "faceAngleTooHigh": "कृपया कैमरे की तरफ सीधे देखें।",
+    "occluded": "आपके चेहरे का हिस्सा ढका हुआ है। यदि संभव हो तो हटाएं।",
+    "pass": "गुणवत्ता जाँच सफल।"
+  },
+  "liveness": {
+    "title": "जीवंतता जाँच",
+    "instructionBlink": "कृपया धीरे-धीरे पलकें झपकाएं।",
+    "instructionTurnLeft": "अपना सिर बाईं ओर घुमाएं।",
+    "instructionTurnRight": "अपना सिर दाईं ओर घुमाएं।",
+    "timeout": "समय समाप्त। कृपया पुनः प्रयास करें।",
+    "failed": "जीवंतता जाँच विफल।",
+    "attempt": "प्रयास {{count}} / 3",
+    "supervisorOverride": "कृपया अपने सुपरवाइज़र से संपर्क करें।"
+  },
+  "authResult": {
+    "success": "प्रमाणित",
+    "workerName": "श्रमिक: {{name}}",
+    "workerId": "आईडी: {{id}}",
+    "waitingConfirmation": "सुपरवाइज़र की पुष्टि की प्रतीक्षा में...",
+    "rejected": "सुपरवाइज़र ने अस्वीकार किया।",
+    "failed": "प्रमाणीकरण विफल। श्रमिक पहचाना नहीं गया।"
+  },
+  "supervisorConfirmation": {
+    "title": "श्रमिक की पहचान की पुष्टि करें",
+    "instruction": "सुनिश्चित करें कि सामने खड़ा व्यक्ति फ़ोटो से मेल खाता है।",
+    "confirm": "उपस्थिति की पुष्टि करें",
+    "reject": "अस्वीकार करें"
+  },
+  "registration": {
+    "title": "नए श्रमिक का पंजीकरण",
+    "name": "पूरा नाम",
+    "role": "पद / काम",
+    "idNumber": "आईडी नंबर",
+    "contactNumber": "संपर्क नंबर",
+    "languagePreference": "पसंदीदा भाषा",
+    "capturePhoto": "फ़ोटो लें",
+    "captureInstruction": "सीधे कैमरे की तरफ देखें।",
+    "submitting": "पंजीकरण जमा हो रहा है...",
+    "successQueued": "पंजीकरण कतार में है। कनेक्शन होने पर सिंक होगा।",
+    "successSubmitted": "श्रमिक का पंजीकरण सफल।"
+  },
+  "supervisorDashboard": {
+    "title": "सुपरवाइज़र डैशबोर्ड",
+    "attendanceToday": "आज की उपस्थिति",
+    "syncStatus": "सिंक स्थिति",
+    "pendingSync": "{{count}} रिकॉर्ड सिंक होने बाकी",
+    "lastSync": "अंतिम सिंक: {{time}}",
+    "registerWorker": "नए श्रमिक का पंजीकरण"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "language": "भाषा",
+    "english": "अंग्रेज़ी",
+    "hindi": "हिंदी"
+  }
+}
