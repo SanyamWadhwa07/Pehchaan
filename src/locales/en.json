@@ -75,5 +75,39 @@
   "camera": {
     "permissionDenied": "Camera permission is required for face authentication.",
     "noDevice": "No front camera found on this device."
+  },
+  "enrollment": {
+    "title": "Central Worker Enrollment",
+    "devEntry": "Admin enrollment",
+    "stepDetails": "Worker details",
+    "stepCapture": "Face captures",
+    "stepThumbnail": "Reference photo",
+    "stepReview": "Review and submit",
+    "siteLabel": "Site",
+    "siteStub": "Test site (dev)",
+    "validationRequired": "This field is required.",
+    "validationIdRequired": "ID number is required.",
+    "acceptCapture": "Accept capture",
+    "captureComplete": "Capture saved.",
+    "skipPpe": "Skip (not worn on site)",
+    "optionalPpe": "Optional PPE variant",
+    "thumbnailInstruction": "Confirm the reference photo shown to supervisors during attendance.",
+    "useFrontal": "Use frontal capture",
+    "reviewTitle": "Review registration",
+    "reviewName": "Name",
+    "reviewRole": "Role",
+    "reviewLanguage": "Language",
+    "reviewAngles": "Captures",
+    "submitEnrollment": "Submit enrollment",
+    "submitSuccess": "Worker registered. Embedding will be generated on the server.",
+    "submitError": "Registration failed. Please try again.",
+    "angles": {
+      "frontal": "Frontal — look at the camera",
+      "left_30": "Turn head 30° left",
+      "right_30": "Turn head 30° right",
+      "up_tilt": "Tilt head slightly up",
+      "helmet_on": "With helmet (if worn on site)",
+      "glasses_on": "With safety glasses (if worn)"
+    }
   }
 }

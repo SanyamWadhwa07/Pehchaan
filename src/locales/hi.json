@@ -75,5 +75,39 @@
   "camera": {
     "permissionDenied": "चेहरे की पहचान के लिए कैमरा अनुमति आवश्यक है।",
     "noDevice": "इस डिवाइस पर सामने का कैमरा नहीं मिला।"
+  },
+  "enrollment": {
+    "title": "केंद्रीय श्रमिक नामांकन",
+    "devEntry": "प्रशासन नामांकन",
+    "stepDetails": "श्रमिक विवरण",
+    "stepCapture": "चेहरे की फ़ोटो",
+    "stepThumbnail": "संदर्भ फ़ोटो",
+    "stepReview": "समीक्षा और जमा",
+    "siteLabel": "साइट",
+    "siteStub": "परीक्षण साइट (dev)",
+    "validationRequired": "यह फ़ील्ड आवश्यक है।",
+    "validationIdRequired": "आईडी नंबर आवश्यक है।",
+    "acceptCapture": "फ़ोटो स्वीकार करें",
+    "captureComplete": "फ़ोटो सहेजी गई।",
+    "skipPpe": "छोड़ें (साइट पर नहीं पहनते)",
+    "optionalPpe": "वैकल्पिक PPE फ़ोटो",
+    "thumbnailInstruction": "उपस्थिति के दौरान सुपरवाइज़र को दिखने वाली संदर्भ फ़ोटो की पुष्टि करें।",
+    "useFrontal": "सामने की फ़ोटो उपयोग करें",
+    "reviewTitle": "पंजीकरण की समीक्षा",
+    "reviewName": "नाम",
+    "reviewRole": "पद",
+    "reviewLanguage": "भाषा",
+    "reviewAngles": "फ़ोटो",
+    "submitEnrollment": "नामांकन जमा करें",
+    "submitSuccess": "श्रमिक पंजीकृत। सर्वर पर एम्बेडिंग बनेगी।",
+    "submitError": "पंजीकरण विफल। पुनः प्रयास करें।",
+    "angles": {
+      "frontal": "सामने — कैमरे की ओर देखें",
+      "left_30": "सिर 30° बाएं घुमाएं",
+      "right_30": "सिर 30° दाएं घुमाएं",
+      "up_tilt": "सिर थोड़ा ऊपर उठाएं",
+      "helmet_on": "हेलमेट के साथ (यदि पहनते हैं)",
+      "glasses_on": "सुरक्षा चश्मे के साथ (यदि पहनते हैं)"
+    }
   }
 }
