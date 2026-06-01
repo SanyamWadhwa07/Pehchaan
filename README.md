@@ -66,15 +66,13 @@ npx react-native run-android
 ## Project Structure
 
 ```
-src/locales/          # English + Hindi string files
-src/screens/          # Auth, supervisor, enrollment, registration, settings
-src/services/         # Integration layer + site package service
-src/db/               # WatermelonDB models
-src/sync/             # Offline sync state machine
-src/native/           # TFLite native bridge (Android + iOS)
+src/                  # See src/README.md — constants, lib, i18n, screens, types
+docs/                 # CODE_CONVENTIONS.md — naming, layers, PR checklist
 ml/                   # Model weights + augmentation scripts
 supabase/             # Migrations + edge functions
 ```
+
+**Code clarity:** read [docs/CODE_CONVENTIONS.md](docs/CODE_CONVENTIONS.md) before adding features.
 
 ---
 
