@@ -1,19 +1,13 @@
-// Sync Layer — Backend Interface
-//
-// This is the pluggable backend interface for Pehchaan's sync layer.
-// The sync layer is architected for NHAI DataLink 3.0 as the production target.
-// During hackathon development the Supabase edge functions act as a mock backend
-// behind the same interface — swapping to DataLink 3.0 is a config-only change
-// (set INTEGRATION_API_KEY + INTEGRATION_ENDPOINT in .env).
-//
-// All payloads are REST-compatible JSON — no proprietary binary formats.
+/**
+ * Sync layer — pluggable backend interface (DataLink 3.0 in prod, Supabase in dev).
+ * Owner: Maulik. Payloads use camelCase (@/types); map at HTTP boundary if API uses snake_case.
+ *
+ * @see openapi.yaml
+ * @see docs/CODE_CONVENTIONS.md
+ */
 
+import { integrationEnv, isIntegrationConfigured } from '@/config/env';
 import type { AttendanceRecord, Worker, UUID, ISOTimestamp } from '@/types';
-
-const INTEGRATION_API_KEY = process.env.INTEGRATION_API_KEY ?? '';
-const INTEGRATION_ENDPOINT = process.env.INTEGRATION_ENDPOINT ?? '';
-
-const isIntegrationEnabled = Boolean(INTEGRATION_API_KEY && INTEGRATION_ENDPOINT);
 
 // Payload shapes are subsets of the shared types — only what the backend needs
 export type AttendancePayload = Pick<
@@ -33,36 +27,36 @@ export interface RevocationPayload {
 // NHAI provides credentials. Until then they are no-ops that log the payload.
 
 export async function pushAttendance(payload: AttendancePayload): Promise<void> {
-  if (!isIntegrationEnabled) return;
-  await fetch(`${INTEGRATION_ENDPOINT}/attendance`, {
+  if (!isIntegrationConfigured()) return;
+  await fetch(`${integrationEnv.endpoint}/attendance`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${INTEGRATION_API_KEY}`,
+      Authorization: `Bearer ${integrationEnv.apiKey}`,
     },
     body: JSON.stringify(payload),
   });
 }
 
 export async function pushWorker(payload: WorkerPayload): Promise<void> {
-  if (!isIntegrationEnabled) return;
-  await fetch(`${INTEGRATION_ENDPOINT}/workers`, {
+  if (!isIntegrationConfigured()) return;
+  await fetch(`${integrationEnv.endpoint}/workers`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${INTEGRATION_API_KEY}`,
+      Authorization: `Bearer ${integrationEnv.apiKey}`,
     },
     body: JSON.stringify(payload),
   });
 }
 
 export async function syncRevocations(payload: RevocationPayload): Promise<void> {
-  if (!isIntegrationEnabled) return;
-  await fetch(`${INTEGRATION_ENDPOINT}/revocations`, {
+  if (!isIntegrationConfigured()) return;
+  await fetch(`${integrationEnv.endpoint}/revocations`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${INTEGRATION_API_KEY}`,
+      Authorization: `Bearer ${integrationEnv.apiKey}`,
     },
     body: JSON.stringify(payload),
   });
