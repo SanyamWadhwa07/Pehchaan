@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   langChipTextActive: {
-    color: colors.primaryText,
+    color: colors.primary,
     fontWeight: '600',
   },
   next: {

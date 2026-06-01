@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.textMuted,
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,

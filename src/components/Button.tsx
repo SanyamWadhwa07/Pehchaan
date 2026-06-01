@@ -44,9 +44,11 @@ export function Button({
       accessibilityRole="button"
       {...rest}>
       {loading ? (
-        <ActivityIndicator color={colors.primaryText} />
+        <ActivityIndicator
+          color={variant === 'secondary' ? colors.primary : colors.onAccent}
+        />
       ) : (
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, styles[`${variant}Label`]]}>{label}</Text>
       )}
     </Pressable>
   );
@@ -62,18 +64,18 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   primary: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
   },
   secondary: {
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.textMuted,
+    borderColor: colors.primary,
   },
   danger: {
     backgroundColor: colors.error,
   },
   pressed: {
-    opacity: 0.88,
+    opacity: 0.9,
   },
   disabled: {
     opacity: 0.5,
@@ -81,6 +83,14 @@ const styles = StyleSheet.create({
   label: {
     ...typography.body,
     fontWeight: '600',
-    color: colors.primaryText,
+  },
+  primaryLabel: {
+    color: colors.onAccent,
+  },
+  secondaryLabel: {
+    color: colors.primary,
+  },
+  dangerLabel: {
+    color: colors.onAccent,
   },
 });

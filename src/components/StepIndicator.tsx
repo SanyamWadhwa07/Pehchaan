@@ -40,6 +40,7 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.caption,
+    color: colors.primary,
     marginBottom: spacing.sm,
   },
   dots: {
@@ -51,10 +52,10 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.border,
   },
   dotActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
   },
   counter: {
     ...typography.caption,

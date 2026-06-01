@@ -33,7 +33,7 @@ export default function App(): React.JSX.Element {
   if (!ready) {
     return (
       <View style={styles.boot}>
-        <ActivityIndicator color={colors.primary} size="large" />
+        <ActivityIndicator color={colors.accent} size="large" />
       </View>
     );
   }

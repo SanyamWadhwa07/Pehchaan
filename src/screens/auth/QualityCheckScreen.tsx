@@ -53,7 +53,7 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
   if (isRequesting) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} size="large" />
+        <ActivityIndicator color={colors.accent} size="large" />
         <Text style={styles.muted}>{t('common.loading')}</Text>
       </View>
     );
@@ -116,7 +116,7 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
             {t(feedbackKey)}
           </Text>
         ) : (
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={colors.accent} />
         )}
 
         {!quality?.passed && quality != null && (
@@ -150,13 +150,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   settingsButton: {
-    backgroundColor: colors.overlay,
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 2,
+    shadowColor: colors.text,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   settingsLabel: {
-    color: colors.primaryText,
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -167,10 +174,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     padding: 20,
     paddingBottom: 36,
-    backgroundColor: colors.overlay,
+    backgroundColor: colors.panelOnCamera,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderTopWidth: 1,
+    borderColor: colors.border,
   },
   title: {
-    color: colors.primaryText,
+    color: colors.text,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 8,
@@ -178,6 +189,7 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 16,
     lineHeight: 22,
+    color: colors.textSecondary,
   },
   pass: {
     color: colors.success,
@@ -192,13 +204,13 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: 16,
     alignSelf: 'flex-start',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
   },
   retryText: {
-    color: colors.primaryText,
+    color: colors.onAccent,
     fontWeight: '600',
   },
 });

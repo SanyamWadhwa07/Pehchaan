@@ -21,8 +21,9 @@ export function AuthStack(): React.JSX.Element {
       initialRouteName="QualityCheck"
       screenOptions={{
         headerStyle: { backgroundColor: colors.surface },
-        headerTintColor: colors.text,
-        headerTitleStyle: { color: colors.text },
+        headerTintColor: colors.primary,
+        headerTitleStyle: { color: colors.text, fontWeight: '600' },
+        headerShadowVisible: true,
       }}>
       <Stack.Screen
         name="QualityCheck"

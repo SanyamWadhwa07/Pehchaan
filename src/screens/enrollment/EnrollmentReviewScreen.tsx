@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingBottom: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.surface,
+    borderBottomColor: colors.border,
   },
   label: {
     ...typography.label,

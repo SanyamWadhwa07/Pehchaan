@@ -72,7 +72,7 @@ export function MultiAngleCaptureScreen({
   if (isRequesting) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} size="large" />
+        <ActivityIndicator color={colors.accent} size="large" />
       </View>
     );
   }
@@ -155,7 +155,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
-    backgroundColor: colors.overlay,
+    backgroundColor: colors.panelOnCamera,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderTopWidth: 1,
+    borderColor: colors.border,
   },
   feedback: {
     ...typography.body,

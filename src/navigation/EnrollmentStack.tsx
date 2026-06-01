@@ -26,8 +26,9 @@ function EnrollmentNavigator(): React.JSX.Element {
       initialRouteName="WorkerDetails"
       screenOptions={{
         headerStyle: { backgroundColor: colors.surface },
-        headerTintColor: colors.text,
-        headerTitleStyle: { color: colors.text },
+        headerTintColor: colors.primary,
+        headerTitleStyle: { color: colors.text, fontWeight: '600' },
+        headerShadowVisible: true,
       }}>
       <Stack.Screen
         name="WorkerDetails"

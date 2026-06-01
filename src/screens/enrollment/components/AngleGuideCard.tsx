@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.textMuted,
+    borderColor: colors.border,
   },
   cardCaptured: {
     borderColor: colors.success,

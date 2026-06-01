@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   optionTextSelected: {
-    color: colors.primaryText,
+    color: colors.primary,
     fontWeight: '600',
   },
 });
