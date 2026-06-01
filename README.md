@@ -72,7 +72,7 @@ ml/                   # Model weights + augmentation scripts
 supabase/             # Migrations + edge functions
 ```
 
-**Code clarity:** read [docs/CODE_CONVENTIONS.md](docs/CODE_CONVENTIONS.md) before adding features.
+**Code clarity:** [docs/CODE_CONVENTIONS.md](docs/CODE_CONVENTIONS.md) · **Git workflow:** [docs/WORKFLOW.md](docs/WORKFLOW.md)
 
 ---
 

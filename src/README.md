@@ -1,6 +1,6 @@
 # `src/` — Application Code
 
-Full conventions: [docs/CODE_CONVENTIONS.md](../docs/CODE_CONVENTIONS.md)
+[Code conventions](../docs/CODE_CONVENTIONS.md) · [Git workflow](../docs/WORKFLOW.md)
 
 ## Layout
 
