@@ -4,7 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { AuthStack } from '@/navigation/AuthStack';
+import { RootNavigator } from '@/navigation/RootNavigator';
 import { initI18n, type AppLanguage } from '@/i18n';
 import { SUPPORTED_LANGUAGES } from '@/i18n/config';
 import { colors } from '@/theme/colors';
@@ -41,7 +41,7 @@ export default function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <AuthStack />
+        <RootNavigator />
       </NavigationContainer>
     </SafeAreaProvider>
   );

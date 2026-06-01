@@ -89,6 +89,14 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
       <FaceOverlay box={STUB_FACE_BOX} passed={quality?.passed ?? false} />
 
       <View style={styles.topBar}>
+        {__DEV__ ? (
+          <Pressable
+            style={styles.settingsButton}
+            onPress={() => navigation.getParent()?.navigate('Enrollment')}
+            accessibilityRole="button">
+            <Text style={styles.settingsLabel}>{t('enrollment.devEntry')}</Text>
+          </Pressable>
+        ) : null}
         <Pressable
           style={styles.settingsButton}
           onPress={() => navigation.navigate('Settings')}
@@ -138,6 +146,8 @@ const styles = StyleSheet.create({
     top: 48,
     right: 16,
     zIndex: 2,
+    flexDirection: 'row',
+    gap: 8,
   },
   settingsButton: {
     backgroundColor: colors.overlay,
