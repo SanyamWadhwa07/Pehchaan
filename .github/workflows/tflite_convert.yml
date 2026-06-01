@@ -1,0 +1,123 @@
+name: TFLite Convert
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_artifact:
+        description: 'Upload .tflite as artifact'
+        required: false
+        default: 'true'
+
+jobs:
+  convert:
+    name: ONNX -> TFLite INT8 (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Create venv + install ML deps
+        working-directory: ml
+        run: |
+          uv venv venv --python 3.12
+          uv pip install --python venv/bin/python -r requirements.txt
+          uv pip install --python venv/bin/python \
+            tf_keras onnx-graphsurgeon psutil ai-edge-litert sng4onnx \
+            onnx2tf
+
+      - name: Download base model
+        working-directory: ml
+        run: venv/bin/python scripts/download_models.py
+
+      - name: Convert ONNX -> TFLite INT8
+        working-directory: ml
+        run: |
+          venv/bin/python - <<'EOF'
+          import os, sys, tempfile, shutil, warnings
+          from pathlib import Path
+          import numpy as np
+
+          os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+          MODELS = Path("models")
+          ONNX_SRC = MODELS / "mobilefacenet_base.onnx"
+          TFLITE_OUT = MODELS / "mobilefacenet_indian.tflite"
+
+          print("Converting ONNX -> TF SavedModel via onnx2tf...")
+          import onnx2tf
+          with tempfile.TemporaryDirectory() as tmp:
+              onnx2tf.convert(
+                  input_onnx_file_path=str(ONNX_SRC),
+                  output_folder_path=tmp,
+                  non_verbose=True,
+              )
+
+              import tensorflow as tf
+              converter = tf.lite.TFLiteConverter.from_saved_model(tmp)
+              converter.optimizations = [tf.lite.Optimize.DEFAULT]
+              converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+              converter.inference_input_type = tf.int8
+              converter.inference_output_type = tf.float32
+
+              import onnxruntime as rt
+              sess = rt.InferenceSession(str(ONNX_SRC), providers=["CPUExecutionProvider"])
+              inp = sess.get_inputs()[0]
+              shape = [d if isinstance(d, int) and d > 0 else 1 for d in inp.shape]
+              rng = np.random.default_rng(42)
+
+              # Load the SavedModel to get correct input key
+              import tensorflow as tf
+              sm = tf.saved_model.load(tmp)
+              infer = sm.signatures["serving_default"]
+              input_key = list(infer.structured_input_signature[1].keys())[0]
+
+              def rep_dataset():
+                  for _ in range(200):
+                      yield {input_key: rng.uniform(-1, 1, shape).astype(np.float32)}
+
+              converter.representative_dataset = rep_dataset
+              with warnings.catch_warnings():
+                  warnings.simplefilter("ignore")
+                  tflite_model = converter.convert()
+
+          TFLITE_OUT.write_bytes(tflite_model)
+          size_mb = len(tflite_model) / 1e6
+          print(f"[ok] {TFLITE_OUT.name}: {size_mb:.2f} MB")
+          assert size_mb <= 16, f"FAIL: exceeds 16 MB limit ({size_mb:.2f} MB)"
+          EOF
+
+      - name: Verify TFLite inference
+        working-directory: ml
+        run: |
+          venv/bin/python - <<'EOF'
+          import numpy as np, warnings
+          from pathlib import Path
+          import tensorflow as tf
+
+          tflite = Path("models/mobilefacenet_indian.tflite").read_bytes()
+          with warnings.catch_warnings():
+              warnings.simplefilter("ignore")
+              interp = tf.lite.Interpreter(model_content=tflite)
+          interp.allocate_tensors()
+          inp = interp.get_input_details()[0]
+          out = interp.get_output_details()[0]
+          dummy = np.random.randint(-128, 127, inp["shape"], dtype=np.int8)
+          interp.set_tensor(inp["index"], dummy)
+          interp.invoke()
+          emb = interp.get_tensor(out["index"])
+          print(f"[ok] TFLite inference: embedding shape {emb.shape}, norm {np.linalg.norm(emb):.4f}")
+          EOF
+
+      - name: Upload TFLite artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobilefacenet_indian_tflite
+          path: ml/models/mobilefacenet_indian.tflite
+          retention-days: 30
