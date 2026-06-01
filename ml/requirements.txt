@@ -1,0 +1,42 @@
+# ML toolchain — Sanyam Wadhwa
+# Python 3.12 | managed with uv
+# Install: uv pip install --python venv/Scripts/python.exe -r requirements.txt
+#
+# Note: tensorflow-model-optimization dropped — TF's built-in TFLiteConverter
+# handles INT8 PTQ directly, which is all we need for MobileFaceNet quantisation.
+
+# TFLite conversion + INT8 quantisation
+tensorflow>=2.20.0
+tf-keras>=2.20.0
+
+# ONNX model + Windows-compatible INT8 quantisation (onnxruntime.quantization)
+onnx>=1.15.0
+onnxruntime>=1.17.0
+onnx-graphsurgeon>=0.5.0
+sympy>=1.12.0
+
+# onnx2tf: Linux CI only (tflite_convert.yml) — not required on Windows dev machines
+# onnx2tf>=1.20.0
+
+# LiteRT interpreter (TFLite inference, replaces tf.lite.Interpreter in TF>=2.20)
+ai-edge-litert>=2.1.0
+
+# Face detection + liveness (MediaPipe 0.10.30+ is compatible with TF 2.20+ protobuf)
+mediapipe>=0.10.30
+opencv-python-headless>=4.9.0
+
+# Dataset + augmentation
+albumentations>=1.3.1
+Pillow>=10.0.0
+numpy>=1.23.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+tqdm>=4.65.0
+
+# Benchmarking / threshold analysis
+matplotlib>=3.7.0
+seaborn>=0.13.0
+
+# Dataset download helpers
+huggingface-hub>=0.20.0
+kaggle>=1.6.0

@@ -18,22 +18,11 @@ Usage:
 """
 
 import argparse
-import os
-import random
 from pathlib import Path
 
-# TODO (Sanyam — Day 1): Install dependencies
-# pip install opencv-python-headless Pillow numpy albumentations
-
-try:
-    import cv2
-    import numpy as np
-    from PIL import Image
-    import albumentations as A
-except ImportError:
-    raise ImportError(
-        "Missing dependencies. Run: pip install opencv-python-headless Pillow numpy albumentations"
-    )
+import cv2
+import numpy as np
+import albumentations as A
 
 
 AUGMENTATION_PIPELINE = A.Compose([
@@ -45,15 +34,17 @@ AUGMENTATION_PIPELINE = A.Compose([
     A.HueSaturationValue(hue_shift_limit=15, sat_shift_limit=30, val_shift_limit=20, p=0.6),
 
     # Outdoor haze, dust, sweat simulation
-    A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),
+    # std_range is fraction of [0,1] — (0.04, 0.2) ≈ 10–50 noise std on 0–255 scale
+    A.GaussNoise(std_range=(0.04, 0.2), p=0.5),
     A.Blur(blur_limit=3, p=0.3),
 
     # Occlusion patches (helmet straps, scarves, safety glasses frames)
-    A.CoarseDropout(max_holes=4, max_height=30, max_width=60, min_holes=1, p=0.4),
+    # Albumentations 2.x API: num_holes_range, hole_height_range, hole_width_range (pixels)
+    A.CoarseDropout(num_holes_range=(1, 4), hole_height_range=(10, 30), hole_width_range=(20, 60), p=0.4),
 
-    # Scale + flip
+    # Scale + flip — Albumentations 2.x: use Affine instead of ShiftScaleRotate
     A.HorizontalFlip(p=0.5),
-    A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=10, p=0.5),
+    A.Affine(translate_percent=(-0.05, 0.05), scale=(0.9, 1.1), rotate=(-10, 10), p=0.5),
 ])
 
 
