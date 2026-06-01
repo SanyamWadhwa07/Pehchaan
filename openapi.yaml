@@ -113,10 +113,13 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, site_id]
+              required: [name, role, site_id]
               properties:
                 name:
                   type: string
+                role:
+                  type: string
+                  description: Trade / contractor role, e.g. Mason, Electrician
                 site_id:
                   type: string
                   format: uuid

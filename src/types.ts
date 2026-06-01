@@ -1,12 +1,10 @@
 /**
  * Pehchaan — Shared Type Contracts
  *
- * Single source of truth for all data shapes used across:
- *   ML pipeline (Sanyam)  →  native bridge  →  RN screens (Aahil / Maulik)
- *   WatermelonDB models (Anoushka)  →  sync layer  →  backend / DataLink 3.0
+ * App-facing shapes only (camelCase). Postgres rows live in @/lib/db/rows.
+ * Conversions: @/lib/db/mappers. Conventions: docs/CODE_CONVENTIONS.md
  *
  * DO NOT add implementation here. Types only.
- * Import with:  import type { Worker, RecognitionResult, ... } from '@/types';
  */
 
 // ---------------------------------------------------------------------------
@@ -39,13 +37,13 @@ export type SyncStatus = 'pending' | 'uploading' | 'verified' | 'purged' | 'fail
 export type AuthTier = 'high' | 'medium' | 'low';
 
 /** Liveness challenge type presented to worker. */
-export type LivenessChallenge = 'blink' | 'turn_left' | 'turn_right' | 'nod';
+export type LivenessChallenge = 'blink' | 'turn_left' | 'turn_right';
 
 /** Supervisor action on the confirmation screen. */
 export type SupervisorAction = 'confirmed' | 'rejected';
 
 /** DataLink 3.0 push status — set by server-side edge function only. */
-export type IntegrationPushStatus = 'not_pushed' | 'queued' | 'pushed' | 'failed';
+export type IntegrationPushStatus = 'queued' | 'pushed' | 'failed' | 'not_applicable';
 
 // ---------------------------------------------------------------------------
 // Worker
@@ -57,8 +55,8 @@ export interface Worker {
   name: string;
   /** NHAI contractor / trade role, e.g. "Mason", "Electrician" */
   role: string;
-  /** SHA-256 hash of Aadhaar number — raw number never stored */
-  aadhaarHash: string;
+  /** SHA-256 hash of Aadhaar — set after central registration; omitted in site package */
+  aadhaarHash?: string;
   siteId: UUID;
   /** Reference thumbnail shown to supervisor on confirmation screen */
   thumbnailBase64?: string;
@@ -88,8 +86,16 @@ export interface QualityCheck {
   sharpness: number;
   /** Face size relative to frame. Target > 0.15. */
   faceAreaRatio: number;
-  /** Reason string shown in UI if passed = false */
-  failReason?: 'too_dark' | 'too_bright' | 'blurry' | 'too_small' | 'no_face' | 'multiple_faces';
+  /** Maps via qualityCheckTranslationKey() → src/locales qualityCheck.* */
+  failReason?:
+    | 'too_dark'
+    | 'too_bright'
+    | 'blurry'
+    | 'too_small'
+    | 'no_face'
+    | 'multiple_faces'
+    | 'face_angle_too_high'
+    | 'occluded';
 }
 
 /** Result of a single liveness challenge. */
@@ -172,6 +178,10 @@ export interface AttendanceRecord {
   authTier: AuthTier;
   livenessScore: number;
   livenessPassed: boolean;
+  /** Last liveness challenge type (maps to challenge_type in Postgres) */
+  challengeType?: LivenessChallenge;
+  /** Last liveness challenge outcome (maps to challenge_result in Postgres) */
+  challengeResult?: boolean;
   syncStatus: SyncStatus;
   /** Set after server ACK */
   serverRecordId?: UUID;
@@ -227,7 +237,10 @@ export interface RegistrationRequest {
   siteId: UUID;
   /** 4 required + up to 2 optional PPE captures */
   capturedAngles: CaptureAngle[];
-  status: 'pending' | 'approved' | 'rejected';
+  /** Field registration uses pending_registration until first sync */
+  status: 'pending' | 'pending_registration' | 'approved' | 'rejected';
+  /** Optional — collected in admin portal; not in field flow */
+  contactNumber?: string;
   submittedAt: ISOTimestamp;
   reviewedAt?: ISOTimestamp;
   reviewNote?: string;
@@ -252,8 +265,11 @@ export interface DeviceInfo {
   supervisorId: UUID;
   siteId: UUID;
   platform: 'android' | 'ios';
-  appVersion: string;
-  lastSeenAt: ISOTimestamp;
+  appVersion?: string;
+  /** Maps from devices.last_sync_at */
+  lastSyncAt?: ISOTimestamp;
+  trustScore?: number;
+  /** Maps from devices.revoked */
   isRevoked: boolean;
 }
 
