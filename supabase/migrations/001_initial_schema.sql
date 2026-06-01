@@ -29,6 +29,7 @@ alter table sites enable row level security;
 create table workers (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  role text not null,
   site_id uuid not null references sites(id),
   reference_thumbnail_url text,
   embedding_encrypted bytea,       -- AES-256-GCM encrypted; never exposed via REST
@@ -55,9 +56,26 @@ create table site_packages (
 alter table site_packages enable row level security;
 -- TODO (Anoushka — Day 1): RLS — device JWT scoped to site_id can read its own package.
 
+-- ─── DEVICES (before attendance_records — FK dependency) ─────────────────
+
+create table devices (
+  id uuid primary key default gen_random_uuid(),
+  supervisor_id uuid references auth.users(id),
+  site_id uuid not null references sites(id),
+  platform text not null check (platform in ('android', 'ios')),
+  app_version text,
+  revoked boolean not null default false,
+  last_sync_at timestamptz,
+  trust_score numeric(3,2) default 1.0
+);
+
+alter table devices enable row level security;
+-- TODO (Anoushka — Day 1): RLS — device authenticates via JWT scoped to site_id.
+
 -- ─── ATTENDANCE RECORDS ────────────────────────────────────────────────────
 
 create type sync_status_enum as enum ('pending', 'uploading', 'verified', 'purged', 'failed');
+create type auth_tier_enum as enum ('high', 'medium', 'low');
 create type integration_push_status_enum as enum ('queued', 'pushed', 'failed', 'not_applicable');
 
 create table attendance_records (
@@ -67,35 +85,24 @@ create table attendance_records (
   device_id uuid not null references devices(id),
   auth_timestamp timestamptz not null,
   confidence_score numeric(5,4),
+  auth_tier auth_tier_enum,
   liveness_score numeric(5,4),
+  liveness_passed boolean not null default false,
   challenge_type text,
   challenge_result boolean,
   supervisor_id uuid references auth.users(id),
   supervisor_confirmed boolean not null default false,
   sync_status sync_status_enum not null default 'pending',
   server_record_id uuid,
+  synced_at timestamptz,
   purged_at timestamptz,
+  fail_reason text,
   integration_push_status integration_push_status_enum not null default 'queued'
 );
 
 alter table attendance_records enable row level security;
 -- TODO (Anoushka — Day 2): RLS — device JWT can insert; supervisor can read for their site.
 -- TODO: integration_push_status updated only by server-side edge functions, never by device JWT.
-
--- ─── DEVICES ───────────────────────────────────────────────────────────────
-
-create table devices (
-  id uuid primary key default gen_random_uuid(),
-  supervisor_id uuid references auth.users(id),
-  site_id uuid not null references sites(id),
-  platform text not null check (platform in ('android', 'ios')),
-  revoked boolean not null default false,
-  last_sync_at timestamptz,
-  trust_score numeric(3,2) default 1.0
-);
-
-alter table devices enable row level security;
--- TODO (Anoushka — Day 1): RLS — device authenticates via JWT scoped to site_id.
 
 -- ─── REVOCATION LOG ────────────────────────────────────────────────────────
 
@@ -118,10 +125,12 @@ create type registration_status_enum as enum ('pending', 'approved', 'rejected',
 create table registration_requests (
   id uuid primary key default gen_random_uuid(),
   worker_name text not null,
+  role text not null,
   aadhaar_ref_hash text,           -- SHA-256 hash of Aadhaar number; raw number never stored
   site_id uuid not null references sites(id),
   submitted_by uuid references auth.users(id),
   status registration_status_enum not null default 'pending',
+  review_note text,
   created_at timestamptz not null default now(),
   approved_at timestamptz
 );
