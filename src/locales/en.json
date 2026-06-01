@@ -71,5 +71,9 @@
     "language": "Language",
     "english": "English",
     "hindi": "Hindi"
+  },
+  "camera": {
+    "permissionDenied": "Camera permission is required for face authentication.",
+    "noDevice": "No front camera found on this device."
   }
 }

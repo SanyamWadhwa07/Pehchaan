@@ -2,6 +2,8 @@
 
 Keep the codebase obvious to read six months from now. When in doubt, prefer **explicit names** and **one obvious place** for each concern.
 
+**Git branching and PRs:** see [WORKFLOW.md](./WORKFLOW.md).
+
 ---
 
 ## Layering

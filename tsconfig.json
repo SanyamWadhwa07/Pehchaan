@@ -8,5 +8,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*", "index.js"]
+  "include": ["src/**/*", "index.js", "App.tsx"]
 }
