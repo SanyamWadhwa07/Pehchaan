@@ -29,6 +29,8 @@ export async function initI18n(languageOverride?: AppLanguage): Promise<void> {
     resources: i18nResources,
     lng: languageOverride ?? resolveDeviceLanguage(),
     fallbackLng: DEFAULT_LANGUAGE,
+    // React Native Hermes lacks Intl.PluralRules — v3 plural format avoids the polyfill.
+    compatibilityJSON: 'v3',
     interpolation: { escapeValue: false },
   });
 
