@@ -8,32 +8,25 @@
 //
 // All payloads are REST-compatible JSON — no proprietary binary formats.
 
+import type { AttendanceRecord, Worker, UUID, ISOTimestamp } from '@/types';
+
 const INTEGRATION_API_KEY = process.env.INTEGRATION_API_KEY ?? '';
 const INTEGRATION_ENDPOINT = process.env.INTEGRATION_ENDPOINT ?? '';
 
 const isIntegrationEnabled = Boolean(INTEGRATION_API_KEY && INTEGRATION_ENDPOINT);
 
-export interface AttendancePayload {
-  workerId: string;
-  siteId: string;
-  deviceId: string;
-  authTimestamp: string;
-  confidenceScore: number;
-  livenessScore: number;
-  supervisorId: string;
-  supervisorConfirmed: boolean;
-}
+// Payload shapes are subsets of the shared types — only what the backend needs
+export type AttendancePayload = Pick<
+  AttendanceRecord,
+  'workerId' | 'siteId' | 'deviceId' | 'supervisorId' | 'supervisorConfirmed' |
+  'authTimestamp' | 'confidence' | 'livenessScore'
+>;
 
-export interface WorkerPayload {
-  workerId: string;
-  name: string;
-  siteId: string;
-  enrolledAt: string;
-}
+export type WorkerPayload = Pick<Worker, 'id' | 'name' | 'role' | 'siteId' | 'enrolledAt'>;
 
 export interface RevocationPayload {
-  workerIds: string[];
-  revokedAt: string;
+  workerIds: UUID[];
+  revokedAt: ISOTimestamp;
 }
 
 // TODO (Maulik — Day 3): Wire these to the live DataLink 3.0 endpoint once
