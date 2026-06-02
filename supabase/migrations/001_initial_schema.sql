@@ -4,7 +4,7 @@
 -- This schema is the Supabase dev-backend implementation of the sync layer.
 -- In production the sync layer targets NHAI DataLink 3.0 APIs directly —
 -- the schema structure matches what DataLink 3.0 expects so the swap is config-only.
--- All tables require RLS. See policy rules in CLAUDE.md.
+-- All tables require RLS. Policies in `002_rls_policies.sql`.
 
 -- Enable UUID generation
 create extension if not exists "pgcrypto";
@@ -22,7 +22,6 @@ create table sites (
 );
 
 alter table sites enable row level security;
--- TODO (Anoushka — Day 1): Add RLS policy — supervisors can only read their assigned site.
 
 -- ─── WORKERS ───────────────────────────────────────────────────────────────
 
@@ -40,8 +39,6 @@ create table workers (
 );
 
 alter table workers enable row level security;
--- TODO (Anoushka — Day 1): RLS — supervisors can read workers for their site_id only.
--- TODO: Worker embeddings must never be returned via REST — site package only.
 
 -- ─── SITE PACKAGES ─────────────────────────────────────────────────────────
 
@@ -54,7 +51,6 @@ create table site_packages (
 );
 
 alter table site_packages enable row level security;
--- TODO (Anoushka — Day 1): RLS — device JWT scoped to site_id can read its own package.
 
 -- ─── DEVICES (before attendance_records — FK dependency) ─────────────────
 
@@ -70,7 +66,6 @@ create table devices (
 );
 
 alter table devices enable row level security;
--- TODO (Anoushka — Day 1): RLS — device authenticates via JWT scoped to site_id.
 
 -- ─── ATTENDANCE RECORDS ────────────────────────────────────────────────────
 
@@ -101,8 +96,6 @@ create table attendance_records (
 );
 
 alter table attendance_records enable row level security;
--- TODO (Anoushka — Day 2): RLS — device JWT can insert; supervisor can read for their site.
--- TODO: integration_push_status updated only by server-side edge functions, never by device JWT.
 
 -- ─── REVOCATION LOG ────────────────────────────────────────────────────────
 
@@ -116,7 +109,6 @@ create table revocation_log (
 );
 
 alter table revocation_log enable row level security;
--- TODO (Anoushka — Day 3): RLS — admin only for inserts; device JWT can read for sync.
 
 -- ─── REGISTRATION REQUESTS ─────────────────────────────────────────────────
 
@@ -136,4 +128,5 @@ create table registration_requests (
 );
 
 alter table registration_requests enable row level security;
--- TODO (Anoushka — Day 2): RLS — device JWT can insert (field registration); admin can approve.
+
+-- RLS policies: see migration 002_rls_policies.sql

@@ -104,6 +104,7 @@ export function registrationToRow(
     role: request.role,
     aadhaar_ref_hash: request.aadhaarHash || null,
     site_id: request.siteId,
+    submitted_by: null,
     status: request.status,
     review_note: request.reviewNote ?? null,
     created_at: request.submittedAt,
