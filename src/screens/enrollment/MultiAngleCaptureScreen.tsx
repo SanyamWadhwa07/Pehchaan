@@ -1,56 +1,59 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
 import { useTranslation } from 'react-i18next';
 import type { StackScreenProps } from '@react-navigation/stack';
 
-import type { AuthStackParamList } from '@/navigation/AuthStack';
-import { qualityCheckTranslationKey } from '@/lib/qualityI18n';
+import { Button } from '@/components/Button';
+import { StepIndicator } from '@/components/StepIndicator';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
 import { useCameraSession } from '@/hooks/useCameraSession';
-import { checkFaceQuality, STUB_FACE_BOX } from '@/services/faceRecognition';
+import { qualityCheckTranslationKey } from '@/lib/qualityI18n';
+import type { EnrollmentStackParamList } from '@/navigation/EnrollmentStack';
+import { AngleGuideCard } from '@/screens/enrollment/components/AngleGuideCard';
+import { useEnrollment } from '@/screens/enrollment/EnrollmentContext';
+import {
+  CAPTURE_SEQUENCE,
+  OPTIONAL_CAPTURE_ANGLES,
+} from '@/screens/enrollment/types';
 import { FaceOverlay } from '@/screens/auth/components/FaceOverlay';
+import { checkFaceQuality, STUB_FACE_BOX } from '@/services/faceRecognition';
 import { colors } from '@/theme/colors';
-import type { QualityCheck } from '@/types';
+import { spacing } from '@/theme/spacing';
+import { typography } from '@/theme/typography';
+import type { CaptureAngle, QualityCheck } from '@/types';
 
-type Props = StackScreenProps<AuthStackParamList, 'QualityCheck'>;
+type Props = StackScreenProps<EnrollmentStackParamList, 'MultiAngleCapture'>;
 
-const POLL_MS = 500;
-
-export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
+export function MultiAngleCaptureScreen({
+  navigation,
+}: Props): React.JSX.Element {
   const { t } = useTranslation();
+  const { state, updateState } = useEnrollment();
   const device = useCameraDevice('front');
   const { hasPermission, isRequesting } = useCameraPermission();
-  const [quality, setQuality] = useState<QualityCheck | null>(null);
-  const [polling, setPolling] = useState(true);
   const { isActive, onCameraError } = useCameraSession();
   const [forceInactive, setForceInactive] = useState(false);
   const cameraActive = isActive && !forceInactive;
 
+  const [angleIndex, setAngleIndex] = useState(0);
+  const [quality, setQuality] = useState<QualityCheck | null>(null);
+
+  const currentAngle = CAPTURE_SEQUENCE[angleIndex]!;
+  const isOptional = OPTIONAL_CAPTURE_ANGLES.includes(currentAngle);
+
   const pollQuality = useCallback(async () => {
-    const result = await checkFaceQuality();
-    setQuality(result);
+    setQuality(await checkFaceQuality());
   }, []);
 
   useEffect(() => {
-    if (!hasPermission || !polling || !cameraActive) {
-      return;
-    }
-    void pollQuality();
-    const id = setInterval(() => {
+    if (hasPermission && cameraActive) {
       void pollQuality();
-    }, POLL_MS);
-    return () => clearInterval(id);
+    }
   }, [
     hasPermission,
-    polling,
     cameraActive,
+    angleIndex,
     pollQuality,
   ]);
 
@@ -67,16 +70,31 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
     };
   }, [navigation]);
 
-  const onRetry = () => {
-    setPolling(true);
-    void pollQuality();
+  const saveCapture = () => {
+    const placeholder = `data:image/jpeg;base64,enrollment-${currentAngle}-${Date.now()}`;
+    updateState({
+      captures: { ...state.captures, [currentAngle]: placeholder },
+    });
+    goNext();
+  };
+
+  const goNext = () => {
+    if (angleIndex >= CAPTURE_SEQUENCE.length - 1) {
+      navigation.navigate('ReferenceThumbnail');
+      return;
+    }
+    setAngleIndex((i) => i + 1);
+    setQuality(null);
+  };
+
+  const skipOptional = () => {
+    goNext();
   };
 
   if (isRequesting) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator color={colors.accent} size="large" />
-        <Text style={styles.muted}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -84,7 +102,6 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
   if (!hasPermission) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.title}>{t('qualityCheck.title')}</Text>
         <Text style={styles.message}>{t('camera.permissionDenied')}</Text>
       </View>
     );
@@ -94,7 +111,7 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
     return (
       <View style={styles.centered}>
         <ActivityIndicator color={colors.accent} size="large" />
-        <Text style={styles.muted}>{t('common.loading')}</Text>
+        <Text style={styles.message}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -116,34 +133,40 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
       />
       <FaceOverlay box={STUB_FACE_BOX} passed={quality?.passed ?? false} />
 
-      <View style={styles.topBar}>
-        <Pressable
-          style={styles.settingsButton}
-          onPress={() => navigation.navigate('Settings')}
-          accessibilityRole="button">
-          <Text style={styles.settingsLabel}>{t('settings.title')}</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.feedback}>
-        <Text style={styles.title}>{t('qualityCheck.title')}</Text>
+      <View style={styles.panel}>
+        <StepIndicator
+          currentStep={2}
+          totalSteps={4}
+          label={t('enrollment.stepCapture')}
+        />
+        <AngleGuideCard
+          angle={currentAngle}
+          optional={isOptional}
+          captured={Boolean(state.captures[currentAngle])}
+        />
         {feedbackKey ? (
           <Text
             style={[
-              styles.message,
+              styles.feedback,
               quality?.passed ? styles.pass : styles.fail,
             ]}>
             {t(feedbackKey)}
           </Text>
-        ) : (
-          <ActivityIndicator color={colors.accent} />
-        )}
+        ) : null}
 
-        {!quality?.passed && quality != null && (
-          <Pressable style={styles.retryButton} onPress={onRetry}>
-            <Text style={styles.retryText}>{t('common.retry')}</Text>
-          </Pressable>
-        )}
+        <Button
+          label={t('enrollment.acceptCapture')}
+          onPress={saveCapture}
+          disabled={!quality?.passed}
+        />
+        {isOptional ? (
+          <Button
+            label={t('enrollment.skipPpe')}
+            variant="secondary"
+            onPress={skipOptional}
+            style={styles.skip}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -158,58 +181,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: spacing.xl,
     backgroundColor: colors.background,
   },
-  topBar: {
-    position: 'absolute',
-    top: 48,
-    right: 16,
-    zIndex: 2,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  settingsButton: {
-    backgroundColor: colors.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    elevation: 2,
-    shadowColor: colors.text,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  settingsLabel: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  feedback: {
+  panel: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    padding: 20,
-    paddingBottom: 36,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
     backgroundColor: colors.panelOnCamera,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     borderTopWidth: 1,
     borderColor: colors.border,
   },
-  title: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  message: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: colors.textSecondary,
+  feedback: {
+    ...typography.body,
+    marginBottom: spacing.md,
   },
   pass: {
     color: colors.success,
@@ -217,20 +207,12 @@ const styles = StyleSheet.create({
   fail: {
     color: colors.error,
   },
-  muted: {
-    color: colors.textMuted,
-    marginTop: 12,
+  message: {
+    ...typography.body,
+    color: colors.text,
+    textAlign: 'center',
   },
-  retryButton: {
-    marginTop: 16,
-    alignSelf: 'flex-start',
-    backgroundColor: colors.accent,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: colors.onAccent,
-    fontWeight: '600',
+  skip: {
+    marginTop: spacing.md,
   },
 });
