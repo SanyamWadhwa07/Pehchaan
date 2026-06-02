@@ -46,11 +46,57 @@ Set metadata in Dashboard → **Authentication** → user → **Raw App Meta Dat
 
 Use a **Custom Access Token Hook** in production so `site_id` / role cannot be forged by clients.
 
+## Supervisor sign-in (React Native + RLS)
+
+RLS treats a **supervisor** as anyone where `public.sites.supervisor_id = auth.uid()`.  
+The JWT from `signInWithPassword` already includes `sub` (= user id); you do **not** need `app_metadata` for that path.
+
+1. **Authentication → Providers:** enable **Email**.
+2. **Authentication → Users:** create the user (e.g. `supervisor@test.com`) and set a **password** (or use “Send magic link” only if you implement magic link in the app).
+3. **Link the user to a site** (SQL Editor — run as postgres / service context):
+
+```sql
+insert into public.sites (name, project_code, supervisor_id, package_version)
+select
+  'Demo NHAI Site',
+  'DEMO-001',
+  id,
+  0
+from auth.users
+where email = 'supervisor@test.com'   -- use your real Auth email here
+limit 1
+returning id, supervisor_id;
+```
+
+4. In the app, call `signInWithPassword` on the client from `src/lib/supabase.ts` (add a login screen or temporary dev button).
+
+Full Dashboard steps: **[supabase/DASHBOARD_SETUP.md](./DASHBOARD_SETUP.md)**.
+
+Dev seed (sites / workers / devices): run **`supabase/seed/dev_supervisor_site_device.sql`** in SQL Editor after users exist.
+
+### Verify RLS from your machine (no secrets in repo)
+
+Set env vars in PowerShell, then:
+
+```bash
+npm run verify:auth-rls
+```
+
+Uses `TEST_EMAIL` / `TEST_PASSWORD` (supervisor). Optionally set `TEST_DEVICE_EMAIL` / `TEST_DEVICE_PASSWORD` for device + sample `attendance_records` insert.
+
+The script signs in, runs `select` on `sites` and `workers` with the **anon** client (same as the app), and prints row counts. Expect at least one **site** whose `supervisor_id` equals the signed-in user id; otherwise run the seed SQL above.
+
+**Optional** `app_metadata` for supervisors is only needed if you use policies that check `pehchaan_role`; table access for their site is already granted via `supervisor_id`.
+
+## Device JWT (later)
+
+Use **`app_metadata`** (`pehchaan_role: "device"`, `site_id: "<uuid>"`) or a **Custom Access Token Hook** so clients cannot forge `site_id`. Mint device-only users or short-lived tokens from an Edge Function; do not put `service_role` in the app.
+
 ## Bootstrap (first site + supervisor) — SQL Editor, service role
 
 1. Create a user in **Authentication** (supervisor email).
-2. Copy their UUID from the users list.
-3. Run (replace UUIDs and names):
+2. Copy their UUID from the users list (or use the `insert ... select from auth.users where email = ...` snippet above).
+3. Run (replace UUIDs and names if not using the email-based insert):
 
 ```sql
 insert into public.sites (id, name, project_code, supervisor_id, package_version)

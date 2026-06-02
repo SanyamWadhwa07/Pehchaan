@@ -73,11 +73,20 @@
     "lastSync": "Last sync: {{time}}",
     "registerWorker": "Register New Worker"
   },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Use your supervisor or device account from the NHAI team.",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "validationRequired": "Enter email and password."
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",
     "english": "English",
-    "hindi": "Hindi"
+    "hindi": "Hindi",
+    "signOut": "Sign out"
   },
   "camera": {
     "permissionDenied": "Camera permission is required for face authentication.",

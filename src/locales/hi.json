@@ -73,11 +73,20 @@
     "lastSync": "अंतिम सिंक: {{time}}",
     "registerWorker": "नए श्रमिक का पंजीकरण"
   },
+  "login": {
+    "title": "साइन इन",
+    "subtitle": "NHAI टीम द्वारा दिए गए सुपरवाइज़र या डिवाइस खाते का उपयोग करें।",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "signIn": "साइन इन करें",
+    "validationRequired": "ईमेल और पासवर्ड दर्ज करें।"
+  },
   "settings": {
     "title": "सेटिंग्स",
     "language": "भाषा",
     "english": "अंग्रेज़ी",
-    "hindi": "हिंदी"
+    "hindi": "हिंदी",
+    "signOut": "साइन आउट"
   },
   "camera": {
     "permissionDenied": "चेहरे की पहचान के लिए कैमरा अनुमति आवश्यक है।",

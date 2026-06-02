@@ -7,7 +7,8 @@
     "ios": "react-native run-ios",
     "start": "react-native start",
     "lint": "eslint src --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:auth-rls": "node scripts/verify-auth-rls.cjs"
   },
   "dependencies": {
     "@nozbe/watermelondb": "^0.27.1",

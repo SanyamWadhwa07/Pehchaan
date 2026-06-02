@@ -6,6 +6,8 @@ node_modules/
 .env
 .env.local
 .env.*.local
+# PowerShell one-liners for verify script — never commit passwords
+.env.verify.local
 
 # ML model weights (large binaries — download via ml/README.md)
 ml/models/
@@ -42,6 +44,9 @@ Thumbs.db
 .vscode/settings.json
 .idea/
 *.swp
+
+# Optional: private progress notes (committed doc is docs/DAY1_PROGRESS.md)
+docs/DAY1_PROGRESS.local.md
 
 # Logs
 *.log
