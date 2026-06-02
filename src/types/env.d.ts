@@ -9,6 +9,7 @@ declare namespace NodeJS {
     INTEGRATION_ENDPOINT?: string;
     SUPABASE_URL?: string;
     SUPABASE_ANON_KEY?: string;
+    SITE_PACKAGE_MASTER_KEY?: string;
   }
 }
 

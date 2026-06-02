@@ -1,0 +1,5 @@
+# Supabase CLI — https://supabase.com/docs/guides/cli/config
+# Link with: npx supabase link --project-ref <ref>
+
+[functions.create-site-package]
+verify_jwt = true

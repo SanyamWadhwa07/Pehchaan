@@ -17,8 +17,39 @@ Or paste `supabase/migrations/*.sql` in order into **SQL Editor** (Dashboard →
 |------|---------|
 | `001_initial_schema.sql` | Seven domain tables + enums + RLS enabled |
 | `002_rls_policies.sql` | Policies, JWT helpers, revoke `workers.embedding_encrypted` for clients |
+| `003_storage_site_packages.sql` | Private `site-packages` bucket + `storage.objects` RLS (`{site_id}/…` keys) |
+| `004_integration_outbox_and_site_packages_rls.sql` | `integration_attendance_outbox` + insert trigger; supervisor may `insert` `site_packages` |
+| `005_site_package_publish_idempotency.sql` | Idempotency store for Edge publish (no client policies; **service_role** writes) |
 
-## JWT `app_metadata` (supervisor / device / admin)
+## Edge Functions
+
+| Function | Purpose |
+|----------|---------|
+| `create-site-package` | POST `{ "site_id", "idempotency_key"?, "package_format"?, "worker_ids"? }` with **supervisor JWT**. **v2 (encrypted):** requires secrets `SITE_PACKAGE_MASTER_KEY` + `SUPABASE_SERVICE_ROLE_KEY` — builds inner JSON (incl. `embedding_encrypted` from DB), AES-256-GCM wrap, zip `manifest.json` + `payload.bin`, upload, DB bump. **v1:** plaintext manifest if master key unset. |
+
+Deploy (requires CLI login + link):
+
+```bash
+npx supabase functions deploy create-site-package
+```
+
+**Secrets (v2):** set in Dashboard → Edge Functions → **Secrets** (see [`docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md`](../docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md)):
+
+| Secret | Required for v2? |
+|--------|---------------------|
+| `SUPABASE_SERVICE_ROLE_KEY` | **Yes** — fetch `workers.embedding_encrypted`, idempotency table, Storage upload |
+| `SITE_PACKAGE_MASTER_KEY` | **Yes** — base64 of 32 raw bytes; wraps per-publish random data key |
+
+`SUPABASE_URL` / `SUPABASE_ANON_KEY` are injected automatically. **v1** path uses supervisor JWT + RLS only (no service role).
+
+Invoke from app or curl:
+
+```bash
+curl -X POST "$SUPABASE_URL/functions/v1/create-site-package" \
+  -H "Authorization: Bearer <supervisor_access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"site_id":"<uuid>"}'
+```
 
 Policies use **`auth.jwt() -> 'app_metadata'`**:
 

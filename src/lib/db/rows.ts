@@ -19,6 +19,7 @@ export interface WorkerRow {
   reference_thumbnail_url: string | null;
   enrolled_at: string;
   revoked_at: string | null;
+  created_by: string | null;
   language_preference: 'en' | 'hi';
 }
 
@@ -50,6 +51,7 @@ export interface RegistrationRequestRow {
   role: string;
   aadhaar_ref_hash: string | null;
   site_id: string;
+  submitted_by: string | null;
   status: 'pending' | 'pending_registration' | 'approved' | 'rejected';
   review_note: string | null;
   created_at: string;
