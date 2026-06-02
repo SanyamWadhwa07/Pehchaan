@@ -39,8 +39,11 @@ git clone <repo-url>
 cd Pehchaan
 npm install
 cp .env.example .env
-# Fill in .env with your Supabase credentials
 ```
+
+Edit **`.env`** in the project root (file is gitignored). In Supabase: **Project Settings → API**, copy **Project URL** into `SUPABASE_URL` and the **anon public** key into `SUPABASE_ANON_KEY`. Rebuild the native app after changing `.env` (`react-native-config` reads it at build time).
+
+Do not add the **service_role** key to `.env` — it would be bundled into the app; use it only in Supabase Dashboard or server-side edge functions.
 
 ### ML Models
 ```bash
@@ -52,8 +55,8 @@ cp .env.example .env
 
 ### Database
 ```bash
-# Apply migrations via Supabase CLI
-supabase db push
+# Apply migrations via Supabase CLI (see supabase/README.md)
+npx supabase db push
 ```
 
 ### Run (Android)

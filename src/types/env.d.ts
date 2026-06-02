@@ -1,6 +1,7 @@
 /**
- * Env vars injected at build time (Metro / Babel).
- * Keys must match .env.example — never commit .env.
+ * Legacy Node process.env typings (scripts / tooling).
+ * App runtime config: `src/config/env.ts` via react-native-config + root `.env`.
+ * Keys must match `.env.example` — never commit `.env`.
  */
 declare namespace NodeJS {
   interface ProcessEnv {
