@@ -3,10 +3,12 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { useTranslation } from 'react-i18next';
 
 import { QualityCheckScreen } from '@/screens/auth/QualityCheckScreen';
+import { WelcomeScreen } from '@/screens/auth/WelcomeScreen';
 import { LanguageSettingsScreen } from '@/screens/settings/LanguageSettingsScreen';
 import { colors } from '@/theme/colors';
 
 export type AuthStackParamList = {
+  Welcome: undefined;
   QualityCheck: undefined;
   Settings: undefined;
 };
@@ -18,13 +20,18 @@ export function AuthStack(): React.JSX.Element {
 
   return (
     <Stack.Navigator
-      initialRouteName="QualityCheck"
+      initialRouteName="Welcome"
       screenOptions={{
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.primary,
         headerTitleStyle: { color: colors.text, fontWeight: '600' },
         headerShadowVisible: true,
       }}>
+      <Stack.Screen
+        name="Welcome"
+        component={WelcomeScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="QualityCheck"
         component={QualityCheckScreen}

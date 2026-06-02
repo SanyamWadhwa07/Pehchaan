@@ -9,6 +9,13 @@
     "loading": "Loading...",
     "error": "Something went wrong. Please try again."
   },
+  "welcome": {
+    "title": "Pehchaan",
+    "subtitle": "Offline workforce authentication for NHAI sites",
+    "hint": "Grant camera access when prompted, then continue to the face quality check.",
+    "startAuth": "Start face check",
+    "permissionDenied": "Camera permission is required. Enable it in system settings and try again."
+  },
   "qualityCheck": {
     "title": "Face Quality Check",
     "tooBlurry": "Image is too blurry. Please hold still.",

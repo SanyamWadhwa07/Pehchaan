@@ -13,6 +13,7 @@ import type { StackScreenProps } from '@react-navigation/stack';
 import type { AuthStackParamList } from '@/navigation/AuthStack';
 import { qualityCheckTranslationKey } from '@/lib/qualityI18n';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
+import { useCameraSession } from '@/hooks/useCameraSession';
 import { checkFaceQuality, STUB_FACE_BOX } from '@/services/faceRecognition';
 import { FaceOverlay } from '@/screens/auth/components/FaceOverlay';
 import { colors } from '@/theme/colors';
@@ -28,6 +29,9 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
   const { hasPermission, isRequesting } = useCameraPermission();
   const [quality, setQuality] = useState<QualityCheck | null>(null);
   const [polling, setPolling] = useState(true);
+  const { isActive, onCameraError } = useCameraSession();
+  const [forceInactive, setForceInactive] = useState(false);
+  const cameraActive = isActive && !forceInactive;
 
   const pollQuality = useCallback(async () => {
     const result = await checkFaceQuality();
@@ -35,7 +39,7 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
   }, []);
 
   useEffect(() => {
-    if (!hasPermission || !polling) {
+    if (!hasPermission || !polling || !cameraActive) {
       return;
     }
     void pollQuality();
@@ -43,7 +47,25 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
       void pollQuality();
     }, POLL_MS);
     return () => clearInterval(id);
-  }, [hasPermission, polling, pollQuality]);
+  }, [
+    hasPermission,
+    polling,
+    cameraActive,
+    pollQuality,
+  ]);
+
+  useEffect(() => {
+    const beforeRemoveUnsub = navigation.addListener('beforeRemove', () => {
+      setForceInactive(true);
+    });
+    const focusUnsub = navigation.addListener('focus', () => {
+      setForceInactive(false);
+    });
+    return () => {
+      beforeRemoveUnsub();
+      focusUnsub();
+    };
+  }, [navigation]);
 
   const onRetry = () => {
     setPolling(true);
@@ -71,7 +93,8 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
   if (!device) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.message}>{t('camera.noDevice')}</Text>
+        <ActivityIndicator color={colors.accent} size="large" />
+        <Text style={styles.muted}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -85,18 +108,15 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <View style={styles.root}>
-      <Camera style={StyleSheet.absoluteFill} device={device} isActive={polling} />
+      <Camera
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive={cameraActive}
+        onError={onCameraError}
+      />
       <FaceOverlay box={STUB_FACE_BOX} passed={quality?.passed ?? false} />
 
       <View style={styles.topBar}>
-        {__DEV__ ? (
-          <Pressable
-            style={styles.settingsButton}
-            onPress={() => navigation.getParent()?.navigate('Enrollment')}
-            accessibilityRole="button">
-            <Text style={styles.settingsLabel}>{t('enrollment.devEntry')}</Text>
-          </Pressable>
-        ) : null}
         <Pressable
           style={styles.settingsButton}
           onPress={() => navigation.navigate('Settings')}

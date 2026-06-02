@@ -7,6 +7,7 @@ import type { StackScreenProps } from '@react-navigation/stack';
 import { Button } from '@/components/Button';
 import { StepIndicator } from '@/components/StepIndicator';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
+import { useCameraSession } from '@/hooks/useCameraSession';
 import { qualityCheckTranslationKey } from '@/lib/qualityI18n';
 import type { EnrollmentStackParamList } from '@/navigation/EnrollmentStack';
 import { AngleGuideCard } from '@/screens/enrollment/components/AngleGuideCard';
@@ -31,6 +32,9 @@ export function MultiAngleCaptureScreen({
   const { state, updateState } = useEnrollment();
   const device = useCameraDevice('front');
   const { hasPermission, isRequesting } = useCameraPermission();
+  const { isActive, onCameraError } = useCameraSession();
+  const [forceInactive, setForceInactive] = useState(false);
+  const cameraActive = isActive && !forceInactive;
 
   const [angleIndex, setAngleIndex] = useState(0);
   const [quality, setQuality] = useState<QualityCheck | null>(null);
@@ -43,10 +47,28 @@ export function MultiAngleCaptureScreen({
   }, []);
 
   useEffect(() => {
-    if (hasPermission) {
+    if (hasPermission && cameraActive) {
       void pollQuality();
     }
-  }, [hasPermission, angleIndex, pollQuality]);
+  }, [
+    hasPermission,
+    cameraActive,
+    angleIndex,
+    pollQuality,
+  ]);
+
+  useEffect(() => {
+    const beforeRemoveUnsub = navigation.addListener('beforeRemove', () => {
+      setForceInactive(true);
+    });
+    const focusUnsub = navigation.addListener('focus', () => {
+      setForceInactive(false);
+    });
+    return () => {
+      beforeRemoveUnsub();
+      focusUnsub();
+    };
+  }, [navigation]);
 
   const saveCapture = () => {
     const placeholder = `data:image/jpeg;base64,enrollment-${currentAngle}-${Date.now()}`;
@@ -77,10 +99,19 @@ export function MultiAngleCaptureScreen({
     );
   }
 
-  if (!hasPermission || !device) {
+  if (!hasPermission) {
     return (
       <View style={styles.centered}>
         <Text style={styles.message}>{t('camera.permissionDenied')}</Text>
+      </View>
+    );
+  }
+
+  if (!device) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator color={colors.accent} size="large" />
+        <Text style={styles.message}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -94,7 +125,12 @@ export function MultiAngleCaptureScreen({
 
   return (
     <View style={styles.root}>
-      <Camera style={StyleSheet.absoluteFill} device={device} isActive />
+      <Camera
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive={cameraActive}
+        onError={onCameraError}
+      />
       <FaceOverlay box={STUB_FACE_BOX} passed={quality?.passed ?? false} />
 
       <View style={styles.panel}>
