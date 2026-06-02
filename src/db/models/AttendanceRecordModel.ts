@@ -23,4 +23,8 @@ export class AttendanceRecordModel extends Model {
   @field('purged_at') purgedAt!: number | null;
   @field('fail_reason') failReason!: string | null;
   @field('integration_push_status') integrationPushStatus!: string;
+  /** Number of consecutive upload failures. Drives exponential-backoff retry. */
+  @field('retry_count') retryCount!: number;
+  /** Unix ms timestamp of the last failure — used with `retry_count` to compute next eligible retry. */
+  @field('last_error_at') lastErrorAt!: number | null;
 }

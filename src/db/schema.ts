@@ -4,7 +4,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * Local SQLite schema (WatermelonDB).
  * Mirrors Supabase row shapes where applicable — see @/lib/db/rows and @/types.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -44,6 +44,8 @@ export const schema = appSchema({
         { name: 'purged_at', type: 'number', isOptional: true },
         { name: 'fail_reason', type: 'string', isOptional: true },
         { name: 'integration_push_status', type: 'string' },
+        { name: 'retry_count', type: 'number' },
+        { name: 'last_error_at', type: 'number', isOptional: true },
       ],
     }),
     tableSchema({
@@ -60,6 +62,9 @@ export const schema = appSchema({
         { name: 'contact_number', type: 'string', isOptional: true },
         { name: 'captured_angles_json', type: 'string' },
         { name: 'submitted_by_supervisor_id', type: 'string', isOptional: true },
+        { name: 'retry_count', type: 'number' },
+        { name: 'last_error_at', type: 'number', isOptional: true },
+        { name: 'server_record_id', type: 'string', isOptional: true },
       ],
     }),
   ],

@@ -17,4 +17,10 @@ export class RegistrationRequestModel extends Model {
   /** JSON string — array of CaptureAngle from @/types */
   @field('captured_angles_json') capturedAnglesJson!: string;
   @field('submitted_by_supervisor_id') submittedBySupervisorId!: string | null;
+  /** Number of consecutive upload failures. Drives exponential-backoff retry. */
+  @field('retry_count') retryCount!: number;
+  /** Unix ms timestamp of the last failure. */
+  @field('last_error_at') lastErrorAt!: number | null;
+  /** Server UUID set after a successful insert — idempotency guard on next upload attempt. */
+  @field('server_record_id') serverRecordId!: string | null;
 }

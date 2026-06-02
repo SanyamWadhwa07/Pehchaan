@@ -7,14 +7,43 @@ import type { AttendanceRecordRow } from '@/lib/db/rows';
 
 import {
   integrationPushFromRemote,
-  isOutboxEligibleForUpload,
   postgresSyncStatusToOutbox,
 } from '@/services/sync/syncStatusMap';
 
-export type AttendanceOutboxSyncOptions = {
-  /** Max local rows per Supabase request */
-  batchSize?: number;
-};
+/** Maximum upload attempts before a row is permanently dead-lettered. */
+export const ATTENDANCE_MAX_RETRIES = 5;
+
+/** Initial backoff after first failure: 30 s. Doubles each attempt; capped at 1 h. */
+const BASE_BACKOFF_MS = 30_000;
+const MAX_BACKOFF_MS = 60 * 60 * 1000;
+
+/**
+ * Compute whether a `failed` row has waited long enough to retry.
+ * `retryCount = 0` means first attempt, always eligible.
+ * `retryCount >= ATTENDANCE_MAX_RETRIES` means dead-lettered, never retry.
+ *
+ * Backoff schedule (approximate):
+ *   attempt 1 → 30 s
+ *   attempt 2 → 60 s
+ *   attempt 3 → 2 min
+ *   attempt 4 → 4 min
+ *   attempt 5 → dead-lettered
+ */
+function isBackoffExpired(retryCount: number, lastErrorAt: number | null): boolean {
+  if (retryCount <= 0) return true;
+  if (retryCount >= ATTENDANCE_MAX_RETRIES) return false;
+  if (lastErrorAt == null) return true;
+  const backoffMs = Math.min(BASE_BACKOFF_MS * Math.pow(2, retryCount - 1), MAX_BACKOFF_MS);
+  return Date.now() - lastErrorAt >= backoffMs;
+}
+
+function isEligibleForUpload(m: AttendanceRecordModel): boolean {
+  if (m.outboxSyncStatus === 'pending') return true;
+  if (m.outboxSyncStatus === 'failed') {
+    return isBackoffExpired(m.retryCount, m.lastErrorAt);
+  }
+  return false;
+}
 
 function rowFromLocal(m: AttendanceRecordModel): Omit<AttendanceRecordRow, 'id'> {
   const sup = m.supervisorId?.trim();
@@ -40,35 +69,75 @@ function rowFromLocal(m: AttendanceRecordModel): Omit<AttendanceRecordRow, 'id'>
   };
 }
 
+export type AttendanceOutboxSyncOptions = {
+  /** Max local rows per Supabase request (default 25). */
+  batchSize?: number;
+};
+
+export type AttendanceOutboxSyncResult = {
+  uploaded: number;
+  errors: string[];
+  /** Rows skipped because they hit the dead-letter threshold. */
+  deadLettered: number;
+};
+
 /**
  * Push local attendance rows to Postgres: WMDB `outbox_sync_status` ↔ `sync_status`.
- * Marks local `uploading` before network; on success mirrors server row; on failure sets `failed`.
+ *
+ * - Eligible: `pending` rows and `failed` rows whose exponential-backoff timer has expired.
+ * - Dead-letters: rows that have failed `ATTENDANCE_MAX_RETRIES` times (stops attempting).
+ * - Marks local rows `uploading` before the network call to avoid double-submit on crash.
  *
  * **Requires device JWT** (RLS: only device role can insert `attendance_records` for its site).
  */
 export async function pushPendingAttendanceOutbox(
   database: Database,
   options: AttendanceOutboxSyncOptions = {},
-): Promise<{ uploaded: number; errors: string[] }> {
+): Promise<AttendanceOutboxSyncResult> {
   const batchSize = options.batchSize ?? 25;
   const errors: string[] = [];
   let uploaded = 0;
+  let deadLettered = 0;
 
   const collection = database.collections.get<AttendanceRecordModel>('attendance_records');
-  const pending = await collection
+
+  // Fetch both pending and failed in a single query; filter eligibility in memory.
+  const candidates = await collection
     .query(Q.where('outbox_sync_status', Q.oneOf(['pending', 'failed'])))
     .fetch();
 
-  const slice = pending.slice(0, batchSize);
-  if (slice.length === 0) {
-    return { uploaded: 0, errors };
+  // Split into eligible and dead-lettered.
+  const eligible: AttendanceRecordModel[] = [];
+  const toDeadLetter: AttendanceRecordModel[] = [];
+
+  for (const m of candidates) {
+    if (m.outboxSyncStatus === 'failed' && m.retryCount >= ATTENDANCE_MAX_RETRIES) {
+      toDeadLetter.push(m);
+    } else if (isEligibleForUpload(m)) {
+      eligible.push(m);
+    }
   }
 
+  // Persist dead-letter status for rows that exceeded max retries.
+  if (toDeadLetter.length > 0) {
+    deadLettered = toDeadLetter.length;
+    await database.write(async () => {
+      for (const m of toDeadLetter) {
+        await m.update((rec) => {
+          rec.failReason = `dead_lettered after ${m.retryCount} attempts`;
+        });
+      }
+    });
+  }
+
+  const slice = eligible.slice(0, batchSize);
+  if (slice.length === 0) {
+    return { uploaded: 0, errors, deadLettered };
+  }
+
+  // Mark uploading to avoid duplicate submission on crash/restart.
   await database.write(async () => {
     for (const m of slice) {
-      if (!isOutboxEligibleForUpload(m.outboxSyncStatus)) {
-        continue;
-      }
       await m.update((rec) => {
         rec.outboxSyncStatus = 'uploading';
         rec.failReason = null;
@@ -76,7 +145,7 @@ export async function pushPendingAttendanceOutbox(
     }
   });
 
-  const payloads = slice.map((m) => rowFromLocal(m));
+  const payloads = slice.map(rowFromLocal);
 
   let remoteRows: AttendanceRecordRow[];
   try {
@@ -88,26 +157,29 @@ export async function pushPendingAttendanceOutbox(
       for (const m of slice) {
         await m.update((rec) => {
           rec.outboxSyncStatus = 'failed';
+          rec.retryCount = m.retryCount + 1;
+          rec.lastErrorAt = Date.now();
           rec.failReason = msg.slice(0, 500);
         });
       }
     });
-    return { uploaded: 0, errors };
+    return { uploaded: 0, errors, deadLettered };
   }
 
   if (remoteRows.length !== slice.length) {
-    errors.push(
-      `batch size mismatch: sent ${slice.length}, got ${remoteRows.length} — marking batch failed`,
-    );
+    const msg = `batch size mismatch: sent ${slice.length}, got ${remoteRows.length}`;
+    errors.push(msg);
     await database.write(async () => {
       for (const m of slice) {
         await m.update((rec) => {
           rec.outboxSyncStatus = 'failed';
+          rec.retryCount = m.retryCount + 1;
+          rec.lastErrorAt = Date.now();
           rec.failReason = 'batch response mismatch';
         });
       }
     });
-    return { uploaded: 0, errors };
+    return { uploaded: 0, errors, deadLettered };
   }
 
   await database.write(async () => {
@@ -119,10 +191,12 @@ export async function pushPendingAttendanceOutbox(
         rec.outboxSyncStatus = postgresSyncStatusToOutbox(row.sync_status);
         rec.integrationPushStatus = integrationPushFromRemote(row.integration_push_status);
         rec.syncedAt = row.synced_at ? Date.parse(row.synced_at) : Date.now();
+        rec.retryCount = 0;
+        rec.lastErrorAt = null;
       });
     }
   });
 
   uploaded = slice.length;
-  return { uploaded, errors };
+  return { uploaded, errors, deadLettered };
 }

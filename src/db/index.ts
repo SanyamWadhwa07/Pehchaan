@@ -18,6 +18,26 @@ const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 3,
+      steps: [
+        addColumns({
+          table: 'attendance_records',
+          columns: [
+            { name: 'retry_count', type: 'number' },
+            { name: 'last_error_at', type: 'number', isOptional: true },
+          ],
+        }),
+        addColumns({
+          table: 'registration_requests',
+          columns: [
+            { name: 'retry_count', type: 'number' },
+            { name: 'last_error_at', type: 'number', isOptional: true },
+            { name: 'server_record_id', type: 'string', isOptional: true },
+          ],
+        }),
+      ],
+    },
   ],
 });
 
