@@ -101,6 +101,20 @@ export async function pushPendingAttendanceOutbox(
 
   const collection = database.collections.get<AttendanceRecordModel>('attendance_records');
 
+  // Rows stuck in 'uploading' mean the previous run was interrupted (kill, crash, etc.).
+  // Reset them to 'pending' so they are retried.  The server insert is idempotent for
+  // new rows (each contains its own local id), so re-sending is safe.
+  const stuck = await collection.query(Q.where('outbox_sync_status', 'uploading')).fetch();
+  if (stuck.length > 0) {
+    await database.write(async () => {
+      for (const m of stuck) {
+        await m.update((rec) => {
+          rec.outboxSyncStatus = 'pending';
+        });
+      }
+    });
+  }
+
   // Fetch both pending and failed in a single query; filter eligibility in memory.
   const candidates = await collection
     .query(Q.where('outbox_sync_status', Q.oneOf(['pending', 'failed'])))

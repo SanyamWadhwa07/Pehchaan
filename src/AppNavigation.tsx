@@ -8,6 +8,7 @@ import { initI18n, type AppLanguage } from '@/i18n';
 import { SUPPORTED_LANGUAGES } from '@/i18n/config';
 import { LoginStack } from '@/navigation/LoginStack';
 import { RootNavigator } from '@/navigation/RootNavigator';
+import { DeviceSessionRoot } from '@/components/DeviceSessionRoot';
 import { colors } from '@/theme/colors';
 
 const APP_LANGUAGE_KEY = 'app_language';
@@ -47,7 +48,13 @@ export function AppNavigation(): React.JSX.Element {
 
   return (
     <NavigationContainer key={session?.user?.id ?? 'signed-out'}>
-      {session ? <RootNavigator /> : <LoginStack />}
+      {session ? (
+        <DeviceSessionRoot>
+          <RootNavigator />
+        </DeviceSessionRoot>
+      ) : (
+        <LoginStack />
+      )}
     </NavigationContainer>
   );
 }

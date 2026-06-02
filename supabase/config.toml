@@ -3,3 +3,6 @@
 
 [functions.create-site-package]
 verify_jwt = true
+
+[functions.register-worker]
+verify_jwt = true

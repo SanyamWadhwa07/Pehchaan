@@ -35,6 +35,38 @@ export async function insertRegistrationRequest(
   return data as RegistrationRequestRow;
 }
 
+export type ApproveRegistrationResult = {
+  ok: boolean;
+  worker_id: string | null;
+  registration_request_id: string;
+  idempotent?: boolean;
+  worker?: {
+    id: string;
+    name: string;
+    role: string;
+    site_id: string;
+    enrolled_at: string;
+  };
+};
+
+/**
+ * Call the Edge `register-worker` function to approve a pending registration:
+ * creates a `workers` row and marks the `registration_requests` row as `'approved'`.
+ *
+ * Requires supervisor JWT for the registration's site, or admin JWT.
+ */
+export async function approveRegistrationRequest(
+  registrationRequestId: string,
+): Promise<ApproveRegistrationResult> {
+  const { data, error } = await supabase.functions.invoke('register-worker', {
+    body: { registration_request_id: registrationRequestId },
+  });
+  if (error) {
+    throw error;
+  }
+  return data as ApproveRegistrationResult;
+}
+
 export async function fetchRegistrationRequestsForSite(
   siteId: string,
   limit = 50,
