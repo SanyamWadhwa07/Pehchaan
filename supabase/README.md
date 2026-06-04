@@ -20,17 +20,23 @@ Or paste `supabase/migrations/*.sql` in order into **SQL Editor** (Dashboard →
 | `003_storage_site_packages.sql` | Private `site-packages` bucket + `storage.objects` RLS (`{site_id}/…` keys) |
 | `004_integration_outbox_and_site_packages_rls.sql` | `integration_attendance_outbox` + insert trigger; supervisor may `insert` `site_packages` |
 | `005_site_package_publish_idempotency.sql` | Idempotency store for Edge publish (no client policies; **service_role** writes) |
+| `006_devices_device_key.sql` | Per-device key material for encrypted site packages |
+| `007_attendance_client_event_id_and_idempotent_rpc.sql` | `attendance_records.client_event_id` + unique index + **`insert_attendance_batch_idempotent`** RPC (device batch insert, retry-safe) |
 
 ## Edge Functions
 
 | Function | Purpose |
 |----------|---------|
 | `create-site-package` | POST `{ "site_id", "idempotency_key"?, "package_format"?, "worker_ids"? }` with **supervisor JWT**. **v2 (encrypted):** requires secrets `SITE_PACKAGE_MASTER_KEY` + `SUPABASE_SERVICE_ROLE_KEY` — builds inner JSON (incl. `embedding_encrypted` from DB), AES-256-GCM wrap, zip `manifest.json` + `payload.bin`, upload, DB bump. **v1:** plaintext manifest if master key unset. |
+| `register-worker` | POST `{ "registration_request_id" }` with **supervisor JWT** — approve registration + create worker (idempotent if already approved). |
+| `sync-revocations` | POST `{ "site_id"?, "since"?, "device_id"? }` with **device JWT** — returns revocations since watermark; optional **`device_id`** defaults `since` from `devices.last_sync_at` and bumps `last_sync_at` after success (service role). |
 
 Deploy (requires CLI login + link):
 
 ```bash
 npx supabase functions deploy create-site-package
+npx supabase functions deploy register-worker
+npx supabase functions deploy sync-revocations
 ```
 
 **Secrets (v2):** set in Dashboard → Edge Functions → **Secrets** (see [`docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md`](../docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md)):
@@ -57,6 +63,7 @@ Policies use **`auth.jwt() -> 'app_metadata'`**:
 |-----|--------|--------|
 | `pehchaan_role` | `supervisor`, `device`, `admin` | Lowercased when read |
 | `site_id` | UUID string | Required for **`device`** tokens |
+| `device_id` | UUID string | Optional — **`public.devices.id`** for this terminal; used by the app for revocation sync + `last_sync_at` watermark |
 
 **Supervisors** are also recognised when `sites.supervisor_id = auth.uid()` (no metadata required).
 
@@ -71,9 +78,12 @@ Set metadata in Dashboard → **Authentication** → user → **Raw App Meta Dat
 ```json
 {
   "pehchaan_role": "device",
-  "site_id": "00000000-0000-0000-0000-000000000000"
+  "site_id": "00000000-0000-0000-0000-000000000000",
+  "device_id": "00000000-0000-0000-0000-000000000001"
 }
 ```
+
+`device_id` should equal `public.devices.id` for that terminal when you want **`sync-revocations`** to use `devices.last_sync_at` as the default `since` cursor and to bump `last_sync_at` after each pull.
 
 Use a **Custom Access Token Hook** in production so `site_id` / role cannot be forged by clients.
 

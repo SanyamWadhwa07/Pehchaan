@@ -10,6 +10,7 @@ declare namespace NodeJS {
     SUPABASE_URL?: string;
     SUPABASE_ANON_KEY?: string;
     SITE_PACKAGE_MASTER_KEY?: string;
+    ATTENDANCE_PURGE_AFTER_INTEGRATION?: string;
   }
 }
 

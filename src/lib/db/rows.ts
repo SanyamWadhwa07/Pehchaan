@@ -38,6 +38,7 @@ export interface AttendanceRecordRow {
   purged_at: string | null;
   fail_reason: string | null;
   integration_push_status: IntegrationPushStatus;
+  client_event_id: string | null;
 }
 
 export interface RegistrationRequestRow {

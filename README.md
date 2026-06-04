@@ -15,7 +15,7 @@ Pehchaan authenticates construction workers **fully offline** using on-device fa
 | Anoushka | React Native + Backend |
 | Sanyam Wadhwa | ML / AI |
 
-**Day 1:** [docs/DAY1_PROGRESS.md](docs/DAY1_PROGRESS.md) · **Day 2 (Anoushka):** [docs/DAY2_TASKS.md](docs/DAY2_TASKS.md) · **Secrets sample:** [docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md](docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md) · **Policies:** [Key rotation](docs/POLICY_KEY_ROTATION.md) · [Biometric retention](docs/POLICY_BIOMETRIC_RETENTION.md) · **Storage + local DB (manual):** [docs/STORAGE_AND_WATERMELON_USER_TASKS.md](docs/STORAGE_AND_WATERMELON_USER_TASKS.md)
+**Day 1:** [docs/DAY1_PROGRESS.md](docs/DAY1_PROGRESS.md) · **Day 2 (Anoushka):** [docs/DAY2_TASKS.md](docs/DAY2_TASKS.md) · **Day 3 (Anoushka):** [docs/DAY3_TASKS.md](docs/DAY3_TASKS.md) · **Secrets sample:** [docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md](docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md) · **Policies:** [Key rotation](docs/POLICY_KEY_ROTATION.md) · [Biometric retention](docs/POLICY_BIOMETRIC_RETENTION.md) · **Storage + local DB (manual):** [docs/STORAGE_AND_WATERMELON_USER_TASKS.md](docs/STORAGE_AND_WATERMELON_USER_TASKS.md)
 
 ---
 
@@ -42,6 +42,8 @@ cd Pehchaan
 npm install
 cp .env.example .env
 ```
+
+After adding native modules (e.g. **`@react-native-community/netinfo`** for Day 3 sync), run a **clean rebuild** of the Android/iOS app so native code links.
 
 Edit **`.env`** in the project root (file is gitignored). In Supabase: **Project Settings → API**, copy **Project URL** into `SUPABASE_URL` and the **anon public** key into `SUPABASE_ANON_KEY`. Rebuild the native app after changing `.env` (`react-native-config` reads it at build time).
 

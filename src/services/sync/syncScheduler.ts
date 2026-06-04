@@ -2,17 +2,36 @@ import {useEffect, useRef} from 'react';
 import {AppState} from 'react-native';
 import type {AppStateStatus} from 'react-native';
 import type {Database} from '@nozbe/watermelondb';
+import Config from 'react-native-config';
+import NetInfo from '@react-native-community/netinfo';
 
+import {reconcileAttendanceFromServer} from '@/services/sync/attendanceRemoteReconcile';
 import {pushPendingAttendanceOutbox} from '@/services/sync/attendanceOutboxSync';
 import {pushPendingRegistrationOutbox} from '@/services/sync/registrationOutboxSync';
+import {syncRevocationsFromServer} from '@/services/sync/revocationRemoteSync';
+import {attendancePurgePolicyFromEnv} from '@/services/sync/syncStatusMap';
 
 export type SyncResult = {
   attendance: {uploaded: number; errors: string[]; deadLettered: number};
   registration: {uploaded: number; errors: string[]; deadLettered: number};
+  /** Present when `siteId` was configured — revocation pull + WMDB worker updates. */
+  revocations?: {applied: number; errors: string[]};
+  /** Present when `siteId` was configured — server ↔ local mirror for already-uploaded rows. */
+  reconcileAttendance?: {updated: number; errors: string[]};
 };
 
 export type SyncSchedulerConfig = {
   database: Database;
+  /**
+   * Device site UUID (`app_metadata.site_id`). When set, after each push cycle the scheduler
+   * runs revocation pull + `reconcileAttendanceFromServer` so integration / supervisor edits propagate locally.
+   */
+  siteId?: string;
+  /**
+   * `devices.id` for this terminal (e.g. `app_metadata.device_id`). Used for revocation sync
+   * `since` default + optional `devices.last_sync_at` bump on the Edge function.
+   */
+  deviceId?: string;
   /**
    * How often to poll in the background (ms).
    * Default: 5 minutes. Pass 0 to disable the timer (foreground-trigger only).
@@ -27,18 +46,27 @@ export type SyncSchedulerConfig = {
 /**
  * Create an imperative sync scheduler bound to a WatermelonDB `database`.
  *
- * - `start()` registers AppState listener + optional interval timer.
+ * - `start()` registers AppState listener + optional interval timer + **NetInfo** (reachable online).
  *   Returns a cleanup function — call it on sign-out or component unmount.
  * - `runSync()` can be called imperatively at any time (safe to call while running; deduped via lock).
+ *
+ * Each cycle: **push** attendance + registration (parallel) → **revocation pull** (when `siteId` set) → **attendance reconcile** (when `siteId` set).
  *
  * Triggers:
  *   1. App foreground (`AppState` active)
  *   2. Periodic timer (every `intervalMs`, default 5 min)
- *   3. Imperative call to `runSync()`
+ *   3. **Network** — `NetInfo` reports connected (and not explicitly unreachable)
+ *   4. Imperative call to `runSync()`
+ *
+ * **Revocation sync** runs after pushes when `siteId` is configured (see `syncRevocationsFromServer`).
  */
 export function createSyncScheduler(config: SyncSchedulerConfig) {
-  const {database, intervalMs = 5 * 60_000, onSyncComplete, onError} = config;
+  const {database, siteId, deviceId, intervalMs = 5 * 60_000, onSyncComplete, onError} =
+    config;
   let running = false;
+  const purgePolicy = attendancePurgePolicyFromEnv(
+    Config.ATTENDANCE_PURGE_AFTER_INTEGRATION,
+  );
 
   const runSync = async (): Promise<SyncResult | null> => {
     if (running) {
@@ -75,7 +103,37 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
               deadLettered: 0,
             };
 
-      const result: SyncResult = {attendance, registration};
+      let revocations: {applied: number; errors: string[]} | undefined;
+      let reconcileAttendance: {updated: number; errors: string[]} | undefined;
+      if (siteId && siteId.trim().length > 0) {
+        const sid = siteId.trim();
+        try {
+          revocations = await syncRevocationsFromServer(database, {
+            siteId: sid,
+            deviceId: deviceId?.trim(),
+          });
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          revocations = {applied: 0, errors: [msg]};
+        }
+
+        try {
+          reconcileAttendance = await reconcileAttendanceFromServer(database, {
+            siteId: sid,
+            purgePolicy,
+          });
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          reconcileAttendance = {updated: 0, errors: [msg]};
+        }
+      }
+
+      const result: SyncResult = {
+        attendance,
+        registration,
+        revocations,
+        reconcileAttendance,
+      };
       onSyncComplete?.(result);
       return result;
     } catch (err) {
@@ -102,6 +160,16 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
       }, intervalMs);
     }
 
+    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
+      if (state.isConnected !== true) {
+        return;
+      }
+      if (state.isInternetReachable === false) {
+        return;
+      }
+      runSync().catch(onError);
+    });
+
     // Run once immediately on start.
     runSync().catch(onError);
 
@@ -110,6 +178,7 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
       if (timer !== null) {
         clearInterval(timer);
       }
+      unsubscribeNetInfo();
     };
   };
 
@@ -122,8 +191,7 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
  * **Mount point:** wrap with a device-session gate (only active when signed in as `device` role).
  *
  * ```tsx
- * // In your device home screen or a DeviceSessionRoot component:
- * useSyncScheduler({ database, intervalMs: 5 * 60_000 });
+ * useSyncScheduler({ database, siteId: sessionSiteId, intervalMs: 5 * 60_000 });
  * ```
  */
 export function useSyncScheduler(config: SyncSchedulerConfig): {

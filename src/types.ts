@@ -219,6 +219,8 @@ export interface AttendanceRecord {
   syncedAt?: ISOTimestamp;
   purgedAt?: ISOTimestamp;
   failReason?: string;
+  /** UUID per tap — offline retries / double-submit map to one server row when set. */
+  clientEventId?: UUID;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,13 +1,35 @@
+/**
+ * Attendance outbox — upload + mirror server state onto WatermelonDB.
+ *
+ * ## State machine (5 + failure path)
+ *
+ * Canonical diagram and product decisions: **`docs/SYNC_STATE_MACHINE.md`**.
+ * Idempotency / replay semantics: **`docs/OFFLINE_IDEMPOTENCY.md`**.
+ *
+ * **Happy path:** `pending` → `uploading` → *(server `pending`/`verified`)* → mirror → often **`purged`**
+ * (tombstone; row kept with `purged_at` set — see purge policy below).
+ *
+ * **Retry path:** `failed` → *(exponential backoff elapsed)* → `pending` → …
+ *
+ * **Stuck `uploading`:** reset to `pending` at the start of each run (crash / kill mid-request).
+ *
+ * **Dead letter:** after `ATTENDANCE_MAX_RETRIES` consecutive failures, row stays `failed` with reason;
+ *   no further uploads (see `computeLocalAttendanceMirrorFromRemote` only applies after success).
+ *
+ * @module attendanceOutboxSync
+ */
 import {Q} from '@nozbe/watermelondb';
 import type {Database} from '@nozbe/watermelondb';
+import Config from 'react-native-config';
 
 import type {AttendanceRecordModel} from '@/db/models/AttendanceRecordModel';
 import {insertAttendanceRecordsBatch} from '@/repositories/attendanceRepository';
 import type {AttendanceRecordRow} from '@/lib/db/rows';
+import {randomUuidV4} from '@/lib/randomUuid';
 
 import {
-  integrationPushFromRemote,
-  postgresSyncStatusToOutbox,
+  attendancePurgePolicyFromEnv,
+  computeLocalAttendanceMirrorFromRemote,
 } from '@/services/sync/syncStatusMap';
 
 /** Maximum upload attempts before a row is permanently dead-lettered. */
@@ -83,6 +105,7 @@ function rowFromLocal(
     fail_reason: null,
     integration_push_status:
       m.integrationPushStatus as AttendanceRecordRow['integration_push_status'],
+    client_event_id: m.clientEventId?.trim() ? m.clientEventId.trim() : null,
   };
 }
 
@@ -104,6 +127,7 @@ export type AttendanceOutboxSyncResult = {
  * - Eligible: `pending` rows and `failed` rows whose exponential-backoff timer has expired.
  * - Dead-letters: rows that have failed `ATTENDANCE_MAX_RETRIES` times (stops attempting).
  * - Marks local rows `uploading` before the network call to avoid double-submit on crash.
+ * - After success: mirrors server row and applies **purge policy** (`ATTENDANCE_PURGE_AFTER_INTEGRATION` in `.env`).
  *
  * **Requires device JWT** (RLS: only device role can insert `attendance_records` for its site).
  */
@@ -115,13 +139,14 @@ export async function pushPendingAttendanceOutbox(
   const errors: string[] = [];
   let uploaded = 0;
   let deadLettered = 0;
+  const purgePolicy = attendancePurgePolicyFromEnv(Config.ATTENDANCE_PURGE_AFTER_INTEGRATION);
 
   const collection =
     database.collections.get<AttendanceRecordModel>('attendance_records');
 
   // Rows stuck in 'uploading' mean the previous run was interrupted (kill, crash, etc.).
-  // Reset them to 'pending' so they are retried.  The server insert is idempotent for
-  // new rows (each contains its own local id), so re-sending is safe.
+  // Reset them to 'pending' so they are retried. Re-send is safe: each row carries a
+  // stable `client_event_id` (assigned before first upload) so Postgres maps retries to one row.
   const stuck = await collection
     .query(Q.where('outbox_sync_status', 'uploading'))
     .fetch();
@@ -173,11 +198,16 @@ export async function pushPendingAttendanceOutbox(
   }
 
   // Mark uploading to avoid duplicate submission on crash/restart.
+  // Assign `client_event_id` once per logical tap (first time we enter uploading) for server idempotency.
   await database.write(async () => {
     for (const m of slice) {
       await m.update(rec => {
         rec.outboxSyncStatus = 'uploading';
         rec.failReason = null;
+        const existing = rec.clientEventId?.trim();
+        if (!existing) {
+          rec.clientEventId = randomUuidV4();
+        }
       });
     }
   });
@@ -223,13 +253,13 @@ export async function pushPendingAttendanceOutbox(
     for (let i = 0; i < slice.length; i++) {
       const m = slice[i]!;
       const row = remoteRows[i]!;
+      const mirror = computeLocalAttendanceMirrorFromRemote(row, purgePolicy);
       await m.update(rec => {
         rec.serverRecordId = row.id;
-        rec.outboxSyncStatus = postgresSyncStatusToOutbox(row.sync_status);
-        rec.integrationPushStatus = integrationPushFromRemote(
-          row.integration_push_status,
-        );
-        rec.syncedAt = row.synced_at ? Date.parse(row.synced_at) : Date.now();
+        rec.outboxSyncStatus = mirror.outboxSyncStatus;
+        rec.integrationPushStatus = mirror.integrationPushStatus;
+        rec.syncedAt = mirror.syncedAtMs;
+        rec.purgedAt = mirror.purgedAtMs;
         rec.retryCount = 0;
         rec.lastErrorAt = null;
       });

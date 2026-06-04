@@ -47,6 +47,15 @@ const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 4,
+      steps: [
+        addColumns({
+          table: 'attendance_records',
+          columns: [{ name: 'client_event_id', type: 'string', isOptional: true }],
+        }),
+      ],
+    },
   ],
 });
 
