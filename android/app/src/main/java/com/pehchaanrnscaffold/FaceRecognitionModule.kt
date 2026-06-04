@@ -229,7 +229,80 @@ class FaceRecognitionModule(reactContext: ReactApplicationContext) :
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 3. Liveness Detection
+    // 3. Generate Embedding (enrollment + field registration)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Detect face, embed, L2-normalise, and return as base64 float32-LE bytes.
+     * Called during enrollment and field registration — NOT during auth
+     * (auth uses runInference which matches against stored embeddings).
+     *
+     * @param frameBase64  Base64 JPEG of a frontal capture frame.
+     * Returns: { embeddingBase64, qualityScore, faceFound }
+     *   embeddingBase64 = 512 × float32 LE → base64 (2048 bytes before encoding)
+     */
+    @ReactMethod
+    fun generateEmbedding(frameBase64: String, promise: Promise) {
+        try {
+            val imgBytes = Base64.decode(frameBase64, Base64.DEFAULT)
+            val src = BitmapFactory.decodeByteArray(imgBytes, 0, imgBytes.size)
+                ?: throw IllegalArgumentException("Cannot decode frame")
+
+            val detection = runBlazeFace(src)
+            if (detection == null) {
+                promise.resolve(Arguments.createMap().apply {
+                    putNull("embeddingBase64")
+                    putDouble("qualityScore", 0.0)
+                    putBoolean("faceFound", false)
+                })
+                return
+            }
+
+            val faceBmp = cropBitmap(src, detection.box, pad = 0.15f)
+            val mfnBmp  = Bitmap.createScaledBitmap(faceBmp, MFN_SIZE, MFN_SIZE, true)
+
+            val inputTensor = mfnInterpreter.getInputTensor(0)
+            val scale = inputTensor.quantizationParams().scale.let { if (it > 0f) it else 0.00784f }
+            val zp    = inputTensor.quantizationParams().zeroPoint
+
+            val inputBuf = ByteBuffer.allocateDirect(MFN_SIZE * MFN_SIZE * 3)
+                .apply { order(ByteOrder.nativeOrder()) }
+            for (y in 0 until MFN_SIZE) {
+                for (x in 0 until MFN_SIZE) {
+                    val px = mfnBmp.getPixel(x, y)
+                    inputBuf.put(quantize(Color.red(px)   / 127.5f - 1f, scale, zp))
+                    inputBuf.put(quantize(Color.green(px) / 127.5f - 1f, scale, zp))
+                    inputBuf.put(quantize(Color.blue(px)  / 127.5f - 1f, scale, zp))
+                }
+            }
+            inputBuf.rewind()
+
+            val outputBuf = Array(1) { FloatArray(EMBED_DIM) }
+            mfnInterpreter.run(inputBuf, outputBuf)
+            val embedding = outputBuf[0]
+
+            // L2-normalise so cosine similarity = dot product
+            val norm = l2norm(embedding)
+            for (i in embedding.indices) embedding[i] /= norm
+
+            // Encode as little-endian float32 bytes → base64
+            val bytesBuf = ByteBuffer.allocate(EMBED_DIM * 4).apply { order(ByteOrder.LITTLE_ENDIAN) }
+            for (v in embedding) bytesBuf.putFloat(v)
+            val embeddingBase64 = Base64.encodeToString(bytesBuf.array(), Base64.NO_WRAP)
+
+            val qualityScore = (detection.box.width() * detection.box.height()).coerceIn(0f, 1f)
+            promise.resolve(Arguments.createMap().apply {
+                putString("embeddingBase64", embeddingBase64)
+                putDouble("qualityScore", qualityScore.toDouble())
+                putBoolean("faceFound", true)
+            })
+        } catch (e: Exception) {
+            promise.reject("EMBED_ERROR", e.message ?: "Unknown", e)
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 4. Liveness Detection
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
@@ -250,11 +323,6 @@ class FaceRecognitionModule(reactContext: ReactApplicationContext) :
 
             for (i in 0 until framesBase64.size()) {
                 val b64 = framesBase64.getString(i) ?: continue
-                val bmp = BitmapFactory.decodeByteArray(
-                    Base64.decode(b64, Base64.DEFAULT).also { }, 0,
-                    Base64.decode(b64, Base64.DEFAULT).size
-                ) ?: continue
-                // Avoid double-decode; re-decode cleanly
                 val bytes = Base64.decode(b64, Base64.DEFAULT)
                 val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: continue
                 val det = runBlazeFace(bitmap) ?: continue
