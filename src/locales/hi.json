@@ -80,6 +80,10 @@
     "captureInstruction": "सीधे कैमरे की तरफ देखें।",
     "acceptCapture": "फ़ोटो स्वीकार करें",
     "captureFailed": "फ़ोटो नहीं ली जा सकी। स्थिर रहें और पुनः प्रयास करें।",
+    "embeddingFailed": "चेहरे की प्रोफ़ाइल नहीं बन सकी। अच्छी रोशनी में कैमरे की ओर देखकर पुनः प्रयास करें।",
+    "embeddingUnavailable": "इस बिल्ड पर चेहरा पहचान उपलब्ध नहीं है। ML मॉडल के साथ पुनः बिल्ड करें।",
+    "generatingEmbedding": "चेहरे की प्रोफ़ाइल बन रही है…",
+    "fillDemoWorker": "डेमो श्रमिक भरें (dev)",
     "submitting": "पंजीकरण जमा हो रहा है...",
     "successQueued": "पंजीकरण कतार में है। कनेक्शन होने पर सिंक होगा।",
     "successSubmitted": "श्रमिक का पंजीकरण सफल।"
@@ -96,7 +100,8 @@
     "reviewNow": "अभी जाँचें",
     "shiftLabel": "शिफ्ट",
     "shiftMorning": "सुबह",
-    "siteLabel": "साइट"
+    "siteLabel": "साइट",
+    "openSettings": "भाषा सेटिंग्स"
   },
   "login": {
     "title": "साइन इन",

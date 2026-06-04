@@ -6,6 +6,7 @@ import type {StackScreenProps} from '@react-navigation/stack';
 import {Button} from '@/components/Button';
 import {Screen} from '@/components/Screen';
 import {TextField} from '@/components/TextField';
+import {DEMO_FIELD_WORKER_PRESETS} from '@/constants/demoFieldWorkers';
 import {hashIdNumber} from '@/lib/hashAadhaar';
 import type {AppLanguage} from '@/i18n';
 import type {RegistrationStackParamList} from '@/navigation/RegistrationStack';
@@ -114,6 +115,24 @@ export function RegistrationDetailsScreen({
             </Pressable>
           ))}
         </View>
+
+        {__DEV__ ? (
+          <Button
+            label={t('registration.fillDemoWorker')}
+            variant="secondary"
+            onPress={() => {
+              const preset =
+                DEMO_FIELD_WORKER_PRESETS[
+                  Math.floor(Math.random() * DEMO_FIELD_WORKER_PRESETS.length)
+                ]!;
+              setName(preset.workerName);
+              setRole(preset.role);
+              setLanguage(preset.languagePreference);
+              setIdNumber('123456789012');
+            }}
+            style={{marginTop: spacing.md}}
+          />
+        ) : null}
 
         <Button
           label={t('common.next')}

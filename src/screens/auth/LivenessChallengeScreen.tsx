@@ -18,6 +18,7 @@ import {
   LIVENESS_CHALLENGE_TIMEOUT_MS,
   LIVENESS_FRAME_SAMPLE_MS,
   LIVENESS_MAX_ATTEMPTS,
+  LIVENESS_SAMPLE_START_DELAY_MS,
 } from '@/constants/auth';
 import {useCameraPermission} from '@/hooks/useCameraPermission';
 import {useCameraSession} from '@/hooks/useCameraSession';
@@ -59,6 +60,9 @@ export function LivenessChallengeScreen({
   const [showOverride, setShowOverride] = useState(false);
   const cameraRef = useRef<CameraType>(null);
   const framesRef = useRef<string[]>([]);
+  const samplingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const evaluatingRef = useRef(false);
   const {tryAcquire, release} = useCaptureInFlight();
 
@@ -151,12 +155,21 @@ export function LivenessChallengeScreen({
     if (!currentChallenge || !cameraActive || showOverride) {
       return;
     }
-    void sampleFrame();
-    const sampleId = setInterval(
-      () => void sampleFrame(),
-      LIVENESS_FRAME_SAMPLE_MS,
-    );
-    return () => clearInterval(sampleId);
+    const startId = setTimeout(() => {
+      void sampleFrame();
+      const sampleId = setInterval(
+        () => void sampleFrame(),
+        LIVENESS_FRAME_SAMPLE_MS,
+      );
+      samplingIntervalRef.current = sampleId;
+    }, LIVENESS_SAMPLE_START_DELAY_MS);
+    return () => {
+      clearTimeout(startId);
+      if (samplingIntervalRef.current != null) {
+        clearInterval(samplingIntervalRef.current);
+        samplingIntervalRef.current = null;
+      }
+    };
   }, [
     attempt,
     cameraActive,

@@ -12,11 +12,17 @@ import {Button} from '@/components/Button';
 import {useCameraPermission} from '@/hooks/useCameraPermission';
 import {useCameraSession} from '@/hooks/useCameraSession';
 import {captureFrameBase64, useCaptureInFlight} from '@/lib/captureFrame';
+import {randomUuidV4} from '@/lib/randomUuid';
 import {qualityCheckTranslationKey} from '@/lib/qualityI18n';
 import type {RegistrationStackParamList} from '@/navigation/RegistrationStack';
 import {FaceOverlay} from '@/screens/auth/components/FaceOverlay';
 import {useFieldRegistration} from '@/screens/registration/RegistrationContext';
-import {checkFaceQuality, STUB_FACE_BOX} from '@/services/faceRecognition';
+import {
+  BRIDGE_AVAILABLE,
+  checkFaceQuality,
+  generateEmbedding,
+  STUB_FACE_BOX,
+} from '@/services/faceRecognition';
 import {colors} from '@/theme/colors';
 import type {QualityCheck} from '@/types';
 
@@ -78,13 +84,32 @@ export function FieldCaptureScreen({navigation}: Props): React.JSX.Element {
     }
     setAccepting(true);
     setCaptureError(null);
+
+    if (!BRIDGE_AVAILABLE) {
+      setCaptureError(t('registration.embeddingUnavailable'));
+      setAccepting(false);
+      return;
+    }
+
     const frame = cameraActive ? await captureFrameBase64(cameraRef) : null;
     if (!frame) {
       setCaptureError(t('registration.captureFailed'));
       setAccepting(false);
       return;
     }
-    updateState({frontalCaptureBase64: frame});
+
+    const {embeddingBase64, faceFound} = await generateEmbedding(frame);
+    if (!faceFound || !embeddingBase64) {
+      setCaptureError(t('registration.embeddingFailed'));
+      setAccepting(false);
+      return;
+    }
+
+    updateState({
+      frontalCaptureBase64: frame,
+      frontalEmbeddingBase64: embeddingBase64,
+      localWorkerId: randomUuidV4(),
+    });
     setForceInactive(true);
     setAccepting(false);
     navigation.navigate('RegistrationQueued');
@@ -113,6 +138,10 @@ export function FieldCaptureScreen({navigation}: Props): React.JSX.Element {
       ? qualityCheckTranslationKey(quality.failReason)
       : null;
 
+  const acceptLabel = accepting
+    ? t('registration.generatingEmbedding')
+    : t('registration.acceptCapture');
+
   return (
     <View style={styles.root}>
       <Camera
@@ -140,9 +169,10 @@ export function FieldCaptureScreen({navigation}: Props): React.JSX.Element {
         )}
         {captureError ? <Text style={styles.fail}>{captureError}</Text> : null}
         <Button
-          label={t('registration.acceptCapture')}
+          label={acceptLabel}
           onPress={() => void onAccept()}
           disabled={!quality?.passed || accepting}
+          loading={accepting}
           style={styles.btn}
         />
       </View>

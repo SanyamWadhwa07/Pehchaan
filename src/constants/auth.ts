@@ -19,5 +19,8 @@ export const LIVENESS_MAX_ATTEMPTS = 3;
 /** Per-challenge timeout (ms). */
 export const LIVENESS_CHALLENGE_TIMEOUT_MS = 5_000;
 
+/** Delay before first liveness sample so the user can read the prompt (ms). */
+export const LIVENESS_SAMPLE_START_DELAY_MS = 500;
+
 /** Interval between liveness frame samples during the countdown (ms). */
-export const LIVENESS_FRAME_SAMPLE_MS = 400;
+export const LIVENESS_FRAME_SAMPLE_MS = 300;

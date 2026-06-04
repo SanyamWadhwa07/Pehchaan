@@ -9,6 +9,10 @@ export type FieldRegistrationState = {
   aadhaarHash: string;
   languagePreference: AppLanguage;
   frontalCaptureBase64: string;
+  /** 512-d float32 LE as base64 from native generateEmbedding. */
+  frontalEmbeddingBase64: string;
+  /** WMDB workers.id for same-device offline recognition before server sync. */
+  localWorkerId: string;
 };
 
 export const initialFieldRegistrationState = (): FieldRegistrationState => ({
@@ -18,6 +22,8 @@ export const initialFieldRegistrationState = (): FieldRegistrationState => ({
   aadhaarHash: '',
   languagePreference: 'en',
   frontalCaptureBase64: '',
+  frontalEmbeddingBase64: '',
+  localWorkerId: '',
 });
 
 type ContextValue = {

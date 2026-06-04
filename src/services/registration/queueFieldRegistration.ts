@@ -1,7 +1,11 @@
 import {database} from '@/db';
 import type {RegistrationRequestModel} from '@/db/models/RegistrationRequestModel';
 import {DEV_TEST_SITE_ID} from '@/constants/dev';
-import type {CaptureAngle} from '@/types';
+/** JSON shape in registration_requests.captured_angles_json (Anoushka outbox can parse). */
+export type FieldRegistrationCapturesJson = {
+  frontal: string;
+  embedding_base64?: string;
+};
 
 export type FieldRegistrationInput = {
   workerName: string;
@@ -10,6 +14,7 @@ export type FieldRegistrationInput = {
   contactNumber?: string;
   languagePreference: 'en' | 'hi';
   frontalCaptureBase64: string;
+  frontalEmbeddingBase64?: string;
   submittedBySupervisorId?: string | null;
   siteId?: string;
 };
@@ -21,8 +26,11 @@ export type FieldRegistrationInput = {
 export async function queueFieldRegistration(
   input: FieldRegistrationInput,
 ): Promise<RegistrationRequestModel> {
-  const captures: Partial<Record<CaptureAngle, string>> = {
+  const captures: FieldRegistrationCapturesJson = {
     frontal: input.frontalCaptureBase64,
+    ...(input.frontalEmbeddingBase64
+      ? {embedding_base64: input.frontalEmbeddingBase64}
+      : {}),
   };
 
   const collection = database.collections.get<RegistrationRequestModel>(

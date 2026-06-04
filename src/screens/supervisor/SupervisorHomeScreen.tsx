@@ -63,6 +63,13 @@ export function SupervisorHomeScreen({navigation}: Props): React.JSX.Element {
         style={styles.cta}
       />
 
+      <Button
+        label={t('supervisorDashboard.openSettings')}
+        variant="secondary"
+        onPress={() => navigation.navigate('Settings')}
+        style={styles.cta}
+      />
+
       {__DEV__ ? (
         <Button
           label={t('enrollment.devEntry')}

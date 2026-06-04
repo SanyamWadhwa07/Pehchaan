@@ -80,6 +80,10 @@
     "captureInstruction": "Look directly at the camera.",
     "acceptCapture": "Accept capture",
     "captureFailed": "Could not capture photo. Hold steady and try again.",
+    "embeddingFailed": "Could not generate face profile. Face the camera in good light and try again.",
+    "embeddingUnavailable": "Face recognition is not available on this build. Rebuild with ML models.",
+    "generatingEmbedding": "Generating face profile…",
+    "fillDemoWorker": "Fill demo worker (dev)",
     "submitting": "Submitting registration...",
     "successQueued": "Registration queued. Will sync when connected.",
     "successSubmitted": "Worker registered successfully."
@@ -96,7 +100,8 @@
     "reviewNow": "Review now",
     "shiftLabel": "Shift",
     "shiftMorning": "Morning",
-    "siteLabel": "Site"
+    "siteLabel": "Site",
+    "openSettings": "Language settings"
   },
   "login": {
     "title": "Sign in",

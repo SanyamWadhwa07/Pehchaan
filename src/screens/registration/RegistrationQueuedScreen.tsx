@@ -5,10 +5,12 @@ import type {StackScreenProps} from '@react-navigation/stack';
 
 import {Button} from '@/components/Button';
 import {Screen} from '@/components/Screen';
+import {resolveActiveSiteId} from '@/lib/activeSiteId';
 import type {RegistrationStackParamList} from '@/navigation/RegistrationStack';
 import {useFieldRegistration} from '@/screens/registration/RegistrationContext';
 import {useAuthStore} from '@/stores/authStore';
 import {queueFieldRegistration} from '@/services/registration/queueFieldRegistration';
+import {upsertLocalWorkerFromFieldRegistration} from '@/services/registration/upsertLocalWorkerFromFieldRegistration';
 import {colors} from '@/theme/colors';
 import {spacing} from '@/theme/spacing';
 import {typography} from '@/theme/typography';
@@ -20,6 +22,7 @@ export function RegistrationQueuedScreen({
 }: Props): React.JSX.Element {
   const {t} = useTranslation();
   const {state, reset} = useFieldRegistration();
+  const session = useAuthStore(s => s.session);
   const userId = useAuthStore(s => s.user?.id);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -28,20 +31,44 @@ export function RegistrationQueuedScreen({
   const onSubmit = async () => {
     setLoading(true);
     setError(null);
+    const siteId = resolveActiveSiteId(session);
+    const snapshot = {...state};
+
     try {
+      if (
+        !snapshot.localWorkerId ||
+        !snapshot.frontalEmbeddingBase64 ||
+        !snapshot.frontalCaptureBase64
+      ) {
+        throw new Error(t('registration.embeddingFailed'));
+      }
+
       await queueFieldRegistration({
-        workerName: state.workerName,
-        role: state.role,
-        aadhaarRefHash: state.aadhaarHash,
-        contactNumber: state.contactNumber,
-        languagePreference: state.languagePreference,
-        frontalCaptureBase64: state.frontalCaptureBase64,
+        workerName: snapshot.workerName,
+        role: snapshot.role,
+        aadhaarRefHash: snapshot.aadhaarHash,
+        contactNumber: snapshot.contactNumber,
+        languagePreference: snapshot.languagePreference,
+        frontalCaptureBase64: snapshot.frontalCaptureBase64,
+        frontalEmbeddingBase64: snapshot.frontalEmbeddingBase64,
         submittedBySupervisorId: userId ?? null,
+        siteId,
       });
+
+      await upsertLocalWorkerFromFieldRegistration({
+        localWorkerId: snapshot.localWorkerId,
+        workerName: snapshot.workerName,
+        role: snapshot.role,
+        languagePreference: snapshot.languagePreference,
+        frontalCaptureBase64: snapshot.frontalCaptureBase64,
+        frontalEmbeddingBase64: snapshot.frontalEmbeddingBase64,
+        siteId,
+      });
+
       if (__DEV__) {
         console.log(
           '[registration] queued field registration for',
-          state.workerName,
+          snapshot.workerName,
         );
       }
       setDone(true);

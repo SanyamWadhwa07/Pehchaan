@@ -4,11 +4,13 @@ import {useTranslation} from 'react-i18next';
 
 import {SupervisorConfirmationScreen} from '@/screens/supervisor/SupervisorConfirmationScreen';
 import {SupervisorHomeScreen} from '@/screens/supervisor/SupervisorHomeScreen';
+import {LanguageSettingsScreen} from '@/screens/settings/LanguageSettingsScreen';
 import {colors} from '@/theme/colors';
 
 export type SupervisorStackParamList = {
   SupervisorHome: undefined;
   SupervisorConfirmation: undefined;
+  Settings: undefined;
 };
 
 const Stack = createStackNavigator<SupervisorStackParamList>();
@@ -37,6 +39,11 @@ export function SupervisorStack(): React.JSX.Element {
           title: t('supervisorConfirmation.title'),
           headerShown: false,
         }}
+      />
+      <Stack.Screen
+        name="Settings"
+        component={LanguageSettingsScreen}
+        options={{title: t('settings.title')}}
       />
     </Stack.Navigator>
   );
