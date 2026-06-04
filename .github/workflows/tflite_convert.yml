@@ -30,54 +30,63 @@ jobs:
           uv venv venv --python 3.12
           uv pip install --python venv/bin/python -r requirements.txt
           uv pip install --python venv/bin/python \
-            tf_keras onnx-graphsurgeon psutil ai-edge-litert sng4onnx \
+            "numpy<2.0" tf_keras onnx-graphsurgeon psutil ai-edge-litert sng4onnx \
             onnx2tf
 
-      - name: Convert ONNX -> TFLite INT8
+      - name: Convert FP32 ONNX -> TFLite INT8
         working-directory: ml
         run: |
           venv/bin/python - <<'EOF'
-          import os, sys, tempfile, shutil, warnings
+          import os, tempfile, warnings
           from pathlib import Path
           import numpy as np
 
           os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
           MODELS = Path("models")
-          ONNX_SRC = MODELS / "mobilefacenet_indian_int8.onnx"
+          # Use FP32 fine-tuned model — onnx2tf cannot handle QLinearConv from INT8 ONNX
+          ONNX_SRC = MODELS / "finetuned" / "mobilefacenet_indian_ft.onnx"
           TFLITE_OUT = MODELS / "mobilefacenet_indian.tflite"
 
-          print("Converting ONNX -> TF SavedModel via onnx2tf...")
+          print(f"Source: {ONNX_SRC.name} ({ONNX_SRC.stat().st_size/1e6:.1f} MB)")
+          print("Step 1: FP32 ONNX -> TF SavedModel via onnx2tf...")
           import onnx2tf
+          import onnx2tf.onnx2tf as _onnx2tf_mod
+          import onnx2tf.utils.common_functions as _cf
+          # onnx2tf.py imports download_test_image_data into its own namespace.
+          # Must patch both the source module AND the local reference in onnx2tf.py.
+          _stub = lambda: np.zeros((1, 3, 112, 112), dtype=np.float32)
+          _cf.download_test_image_data = _stub
+          _onnx2tf_mod.download_test_image_data = _stub
           with tempfile.TemporaryDirectory() as tmp:
               onnx2tf.convert(
                   input_onnx_file_path=str(ONNX_SRC),
                   output_folder_path=tmp,
                   non_verbose=True,
+                  batch_size=1,
+                  output_signaturedefs=True,
               )
 
               import tensorflow as tf
+
+              # Get SavedModel input key for representative dataset
+              sm = tf.saved_model.load(tmp)
+              infer = sm.signatures["serving_default"]
+              input_key = list(infer.structured_input_signature[1].keys())[0]
+              print(f"  SavedModel input key: {input_key}")
+
+              rng = np.random.default_rng(42)
+
+              def rep_dataset():
+                  for _ in range(200):
+                      # onnx2tf transposes NCHW -> NHWC automatically; feed NHWC here
+                      yield {input_key: rng.uniform(-1, 1, (1, 112, 112, 3)).astype(np.float32)}
+
+              print("Step 2: TF SavedModel -> TFLite INT8 (full integer quantisation)...")
               converter = tf.lite.TFLiteConverter.from_saved_model(tmp)
               converter.optimizations = [tf.lite.Optimize.DEFAULT]
               converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
               converter.inference_input_type = tf.int8
               converter.inference_output_type = tf.float32
-
-              import onnxruntime as rt
-              sess = rt.InferenceSession(str(ONNX_SRC), providers=["CPUExecutionProvider"])
-              inp = sess.get_inputs()[0]
-              shape = [d if isinstance(d, int) and d > 0 else 1 for d in inp.shape]
-              rng = np.random.default_rng(42)
-
-              # Load the SavedModel to get correct input key
-              import tensorflow as tf
-              sm = tf.saved_model.load(tmp)
-              infer = sm.signatures["serving_default"]
-              input_key = list(infer.structured_input_signature[1].keys())[0]
-
-              def rep_dataset():
-                  for _ in range(200):
-                      yield {input_key: rng.uniform(-1, 1, shape).astype(np.float32)}
-
               converter.representative_dataset = rep_dataset
               with warnings.catch_warnings():
                   warnings.simplefilter("ignore")
@@ -104,7 +113,7 @@ jobs:
           interp.allocate_tensors()
           inp = interp.get_input_details()[0]
           out = interp.get_output_details()[0]
-          dummy = np.random.randint(-128, 127, inp["shape"], dtype=np.int8)
+          dummy = np.zeros(inp["shape"], dtype=inp["dtype"])
           interp.set_tensor(inp["index"], dummy)
           interp.invoke()
           emb = interp.get_tensor(out["index"])
