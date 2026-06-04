@@ -44,7 +44,7 @@ jobs:
           os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
           MODELS = Path("models")
           # Use FP32 fine-tuned model — onnx2tf cannot handle QLinearConv from INT8 ONNX
-          ONNX_SRC = MODELS / "mobilefacenet_indian_ft.onnx"
+          ONNX_SRC = MODELS / "finetuned" / "mobilefacenet_indian_ft.onnx"
           TFLITE_OUT = MODELS / "mobilefacenet_indian.tflite"
 
           print(f"Source: {ONNX_SRC.name} ({ONNX_SRC.stat().st_size/1e6:.1f} MB)")
