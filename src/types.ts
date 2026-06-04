@@ -216,7 +216,7 @@ export interface WorkerEmbeddingEntry {
   name: string;
   role: string;
   thumbnailBase64: string;
-  /** Float32Array serialised as base64 — 128-dim cosine embedding */
+  /** Float32Array serialised as base64 — 512-dim cosine embedding (MobileFaceNet output) */
   embeddingBase64: string;
   isRevoked: boolean;
 }

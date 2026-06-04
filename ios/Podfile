@@ -28,6 +28,9 @@ end
 target 'PehchaanRNScaffold' do
   config = use_native_modules!
 
+  # TFLite for on-device face recognition + BlazeFace liveness
+  pod 'TensorFlowLiteSwift', '~> 2.14.0'
+
   use_react_native!(
     :path => config[:reactNativePath],
     # Enables Flipper.
