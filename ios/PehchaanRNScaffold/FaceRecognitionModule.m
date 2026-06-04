@@ -3,7 +3,13 @@
 @interface RCT_EXTERN_MODULE(FaceRecognitionModule, NSObject)
 
 RCT_EXTERN_METHOD(
-  runInference:(NSString *)faceFrameBase64
+  checkFaceQuality:(NSString *)frameBase64
+  resolver:(RCTPromiseResolveBlock)resolve
+  rejecter:(RCTPromiseRejectBlock)reject
+)
+
+RCT_EXTERN_METHOD(
+  runInference:(NSString *)frameBase64
   candidatesJson:(NSString *)candidatesJson
   threshold:(double)threshold
   resolver:(RCTPromiseResolveBlock)resolve
