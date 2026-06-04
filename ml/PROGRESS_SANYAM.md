@@ -8,7 +8,7 @@
 
 This document is the single source of truth for the ML pipeline. It covers what was built, what data was used and why, all benchmark results with methodology, threshold decisions with full justification, and what remains before the APK ships.
 
-**Status as of Day 3:** Data pipeline complete. Fine-tuning running (epoch 12/~20). Model already exceeds the hackathon's >95% accuracy requirement at the evaluated checkpoint. Native bridge and liveness detection not yet started.
+**Status as of Day 4 (Final):** All ML deliverables complete. ONNX fine-tuned model 97.52% TAR. TFLite INT8 (real-face calibration) 96.53% TAR, 3.76 MB. Thresholds updated in `src/constants/auth.ts`. Android/iOS native bridge and liveness detection remain.
 
 ---
 
@@ -317,80 +317,70 @@ Basis:
 
 ---
 
-## 8. What Is NOT Done ❌ (Critical Path to Submission)
+## 8. What Is Done ✅ vs What Remains ❌
 
-### 8.1 Finish Training + Quantise (Day 4 Morning)
+### ML Pipeline — ALL DONE ✅
 
-Training is at epoch 12, loss ~2.0, still converging. After it finishes:
+| Task | Status | Output |
+|---|---|---|
+| Indian dataset (231 identities, 46,681 images) | ✅ | `data/merged_indian/` |
+| MTCNN alignment (35,343 images) | ✅ | `data/aligned_indian/` |
+| 10x augmentation (282,740 images) | ✅ | `data/augmented_indian/` |
+| ArcFace fine-tuning (epoch 10) | ✅ | `ml/models/finetuned/mobilefacenet_indian_ft.onnx` |
+| ONNX evaluation: 97.52% TAR, 0.00% FAR @ 0.30 | ✅ | `ml/THRESHOLD_RESULTS.md` |
+| INT8 ONNX quantisation | ✅ | `ml/models/mobilefacenet_indian_int8.onnx` (3.53 MB) |
+| TFLite INT8 conversion (real-face calibration) | ✅ | `ml/models/mobilefacenet_indian.tflite` (3.76 MB) |
+| TFLite evaluation: 96.53% TAR, 0.54% FAR @ 0.30 | ✅ | Section 9 above |
+| Update `src/constants/auth.ts` thresholds | ✅ | HIGH=0.30 / MEDIUM=0.20 / MIN=0.18 |
 
-```powershell
-$PY = "D:\Pehchaan\ml\venv\Scripts\python.exe"
+### What Remains ❌ (Critical Path — Deadline 05 June)
 
-# Quantise
-& $PY ml/scripts/quantise.py `
-    --model ml/models/finetuned/mobilefacenet_indian_ft.onnx `
-    --calib_dir data/augmented_indian/train `
-    --output ml/models/mobilefacenet_indian_int8.onnx
-
-# Re-evaluate final model
-& $PY ml/scripts/test_model.py `
-    --onnx_model ml/models/finetuned/mobilefacenet_indian_ft.onnx --skip_tflite
-
-# Update thresholds in auth.ts based on new results
-```
-
-### 8.2 TFLite Conversion (Day 4 Morning)
-
-INT8 ONNX → TFLite requires Linux (onnx2tf). Push INT8 ONNX to GitHub → Actions → `tflite_convert` → download artifact → place at `ml/models/mobilefacenet_indian.tflite`. Expected size ~5 MB.
-
-### 8.3 Android Native Bridge — HIGHEST PRIORITY ❌
-
-`src/native/FaceRecognition/FaceRecognitionModule.kt` does not exist. Without it, the app cannot run inference on device.
-
-Required interface:
+#### 1. Android Native Bridge — HIGHEST PRIORITY
+`android/app/src/main/java/com/pehchaanrnscaffold/FaceRecognitionModule.kt` — does not exist.
+Without it, the app cannot run inference on device. Required interface:
 ```kotlin
-fun runInference(base64Image: String): Promise  // {embedding: float[], confidence: float}
-fun enrollWorker(base64Image: String): Promise  // {embedding: float[]}
+fun runInference(base64Image: String, workerEmbedding: ReadableArray): Promise
+// returns {similarity: float, accepted: boolean}
+fun enrollWorker(base64Image: String): Promise
+// returns {embedding: float[512]}
 ```
+Loads `mobilefacenet_indian.tflite` from Android assets via TFLite Interpreter.
 
-Loads `mobilefacenet_indian.tflite` + `blazeface.tflite` from Android assets.
+#### 2. iOS Bridge
+`ios/PehchaanRnScaffold/FaceRecognitionModule.swift` — same interface, Swift TFLite runtime.
 
-### 8.4 iOS Bridge ❌
+#### 3. JS Service Wiring
+`src/services/faceRecognition/index.ts` — wire RN bridge calls so the auth screens can call it.
 
-`src/native/FaceRecognition/FaceRecognitionModule.swift` — same interface, Swift TFLite runtime.
+#### 4. Liveness Detection (EAR + yaw)
+- Challenge 1 "Blink": EAR < 0.25 for ≥2 consecutive frames
+- Challenge 2 "Turn head": yaw angle > 15° from frontal
+- Implement in Kotlin (Android) + Swift (iOS) using MediaPipe Face Mesh landmarks
 
-### 8.5 Liveness Detection ❌
-
-EAR blink detection + yaw head-turn via MediaPipe Face Mesh, fully on-device:
-- Challenge 1 "Blink": EAR < 0.25 for >=2 consecutive frames
-- Challenge 2 "Turn head": yaw angle > 15 degrees from frontal
-
-Coordinate with Aahil for UI challenge prompts.
-
-### 8.6 Update `src/constants/auth.ts` ❌
-
-```typescript
-export const CONFIDENCE_THRESHOLD_HIGH    = 0.45;  // was 0.92
-export const CONFIDENCE_THRESHOLD_MEDIUM  = 0.30;  // was 0.80
-export const CONFIDENCE_THRESHOLD_MINIMUM = 0.20;  // was 0.75
-```
+#### 5. Device Benchmark
+Run on a real Android device, measure:
+- End-to-end inference time (target < 1000 ms)
+- Peak RAM (target < 500 MB)
+- Fill benchmark table in Section 9 above
 
 ---
 
 ## 9. Benchmark Table
 
-| Metric | Requirement | Measured | Status |
-|---|---|---|---|
-| Model size ONNX FP32 | — | **13.6 MB** | ✅ |
-| Model size ONNX INT8 | ≤ 20 MB | pending quantise | ⏳ |
-| Model size TFLite | ≤ 20 MB | ~5 MB expected | ⏳ CI |
-| TAR @ threshold 0.30 | > 95% | **97.52%** (epoch 10) | ✅ |
-| FAR @ threshold 0.30 | < 1% | **0.00%** | ✅ |
-| Same-pair cosine mean | — | 0.6636 (epoch 10, training) | 🔄 |
-| Diff-pair cosine mean | — | **0.0041** | ✅ |
-| Real-world max diff-pair | — | **0.431** (14 workers) | ✅ |
-| Inference speed end-to-end | < 1000 ms | pending device test | ⏳ |
-| Peak RAM | ≤ 500 MB | pending device test | ⏳ |
+| Metric | Requirement | ONNX FP32 | TFLite INT8 | Status |
+|---|---|---|---|---|
+| Model size | ≤ 20 MB | 13.6 MB | **3.76 MB** | ✅ |
+| Same-pair cosine mean | — | **0.6636** | 0.6335 | ✅ |
+| Diff-pair cosine mean | — | **0.0041** | 0.0055 | ✅ |
+| Separation | — | **0.6595** | 0.6280 | ✅ |
+| TAR @ 0.30 | > 95% | **97.52%** | **96.53%** | ✅ |
+| FAR @ 0.30 | < 1% | **0.00%** | **0.54%** | ✅ |
+| Optimal threshold | — | 0.23 | 0.18 | — |
+| Optimal accuracy | > 95% | **98.71%** | **98.20%** | ✅ |
+| Real-world max diff-pair | — | **0.431** (14 workers) | — | ✅ |
+| Calibration data | — | — | 300 real aligned faces | ✅ |
+| Inference speed end-to-end | < 1000 ms | — | pending device test | ⏳ |
+| Peak RAM | ≤ 500 MB | — | pending device test | ⏳ |
 
 ---
 

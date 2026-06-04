@@ -1,6 +1,7 @@
 # Threshold Evaluation Report — MobileFaceNet Fine-tuned
-**Model:** `ml/models/finetuned/mobilefacenet_indian_ft.onnx`  
-**Date:** 2026-06-03  
+**ONNX model:** `ml/models/finetuned/mobilefacenet_indian_ft.onnx` (13.6 MB FP32)  
+**TFLite model:** `ml/models/mobilefacenet_indian.tflite` (3.76 MB INT8, real-face calibration)  
+**Date:** 2026-06-04  
 **Alignment:** MTCNN 5-point landmark (ArcFace canonical 112×112)
 
 ---
@@ -74,57 +75,47 @@ Highest similarity pair: `old-factory-employee` vs `portrait-of-senior-worker` =
 
 ---
 
-## Summary & Recommendation
+## Dataset 3 — TFLite INT8 vs ONNX FP32 Comparison
 
-| Threshold | Indian Test TAR | Indian Test FAR | Real-world FAR | Verdict |
-|---|---|---|---|---|
-| 0.20 | 98.51% | 3.23% | 0.00% | ❌ Too many false accepts |
-| **0.30** | **97.52%** | **0.00%** | **0.00%** | ✅ **Best balance — recommended** |
-| 0.40 | 96.04% | 0.00% | 0.00% | ✅ Safe, slightly more rejections |
-| 0.50 | 89.60% | 0.00% | 0.00% | ⚠️ Workers rejected too often |
+| Metric | ONNX FP32 | TFLite INT8 (real calib) |
+|---|---|---|
+| Same-pair mean | **0.6636** | 0.6335 |
+| Diff-pair mean | **0.0041** | 0.0055 |
+| Separation | **0.6595** | 0.6280 |
+| Optimal threshold | 0.23 | 0.18 |
+| Optimal accuracy | **98.71%** | **98.20%** |
+| TAR @ 0.30 | **97.52%** | **96.53%** |
+| FAR @ 0.30 | **0.00%** | 0.54% |
+| Model size | 13.6 MB | **3.76 MB** |
 
-### Recommended Thresholds for `src/constants/auth.ts`
-
-```typescript
-// High confidence — accept immediately, one liveness challenge
-export const CONFIDENCE_THRESHOLD_HIGH    = 0.45;
-
-// Medium confidence — require second liveness challenge
-export const CONFIDENCE_THRESHOLD_MEDIUM  = 0.30;
-
-// Minimum — third challenge + supervisor flag
-export const CONFIDENCE_THRESHOLD_MINIMUM = 0.20;
-```
-
-**Rationale:**
-- `0.30` is the proven sweet spot: 97.52% TAR, 0.00% FAR on Indian test set, 0.00% FAR on real-world workers
-- `0.45` as HIGH gives a comfortable margin above the real-world max diff-pair (0.431) before auto-accepting
-- `0.20` as MINIMUM is aggressive but acceptable when supervisor confirmation is required
-- These replace the original 0.92/0.80/0.75 targets which assumed a different cosine scale
-
-### Hackathon Claim
-> Model accuracy **97.52% TAR @ threshold 0.30** with **0.00% FAR** on Indian demographic test set (218 identities, MTCNN-aligned, outdoor augmentation).  
-> Meets the hard constraint of **> 95% accuracy** on Indian demographics. ✅
+**Calibration method for TFLite:** 300 real MTCNN-aligned face images from `data/aligned_indian/`. Previous version used random noise — that gave 92.08% TAR. Real faces bring it to 96.53%.
 
 ---
 
-## Notes on Score Scale
+## Summary & Final Thresholds
 
-The model outputs cosine similarities in a **compressed range (~0.0–0.70 for same pairs)** because:
-1. ArcFace fine-tuning is still in progress (epoch ~12/20) — same-pair mean will rise to ~0.80+ at convergence
-2. Haar cascade was NOT used here — MTCNN was confirmed available in `ml/venv`
+| Threshold | ONNX TAR | ONNX FAR | TFLite TAR | TFLite FAR | Verdict |
+|---|---|---|---|---|---|
+| 0.18 | — | — | **98.02%** | 2.69% | TFLite minimum |
+| **0.20** | 98.51% | 3.23% | **98.02%** | **2.69%** | MEDIUM threshold |
+| **0.30** | **97.52%** | **0.00%** | **96.53%** | **0.54%** | HIGH threshold ✅ |
+| 0.40 | 96.04% | 0.00% | 93.07% | 0.00% | Conservative |
 
-When training completes, re-run this evaluation. The optimal threshold will shift slightly higher (estimate 0.40–0.50). Update `auth.ts` thresholds accordingly.
+### Active Thresholds in `src/constants/auth.ts`
 
-**Re-run command:**
-```powershell
-cd D:\Pehchaan
-& "D:\Pehchaan\ml\venv\Scripts\python.exe" ml/scripts/test_model.py `
-    --onnx_model ml/models/finetuned/mobilefacenet_indian_ft.onnx `
-    --skip_tflite
+```typescript
+// 96.53% TAR, 0.54% FAR — one liveness challenge
+export const CONFIDENCE_THRESHOLD_HIGH    = 0.30;
 
-# Real-world probe:
-& "D:\Pehchaan\ml\venv\Scripts\python.exe" ml/scripts/test_model.py `
-    --onnx_model ml/models/finetuned/mobilefacenet_indian_ft.onnx `
-    --skip_tflite --probe_dir "ml/test web"
+// 98.02% TAR, 2.69% FAR — two liveness challenges
+export const CONFIDENCE_THRESHOLD_MEDIUM  = 0.20;
+
+// Minimum — three challenges + supervisor flag
+export const CONFIDENCE_THRESHOLD_MINIMUM = 0.18;
 ```
+
+### Hackathon Claim
+> **ONNX FP32:** 97.52% TAR, 0.00% FAR @ threshold 0.30 on Indian demographic test set (218 identities, MTCNN-aligned)  
+> **TFLite INT8:** 96.53% TAR, 0.54% FAR @ threshold 0.30 — same model on device  
+> Both exceed the hard constraint of **> 95% accuracy** on Indian demographics. ✅  
+> Model size: **3.76 MB** TFLite — well within 20 MB limit. ✅
