@@ -3,6 +3,7 @@ import type {Database} from '@nozbe/watermelondb';
 
 import type {RegistrationRequestModel} from '@/db/models/RegistrationRequestModel';
 import {insertRegistrationRequest} from '@/repositories/registrationRepository';
+import {prepareRegistrationCapturesPayload} from '@/services/sync/registrationCaptureUpload';
 
 /**
  * Maximum upload attempts for a registration request before it is dead-lettered.
@@ -60,6 +61,8 @@ export type RegistrationOutboxSyncResult = {
  * Push locally queued registration requests to Postgres.
  *
  * Only rows with `status = 'pending_registration'` and no `server_record_id` are eligible.
+ * Sends `captured_angles_json` to Postgres; when the local JSON is very large, face blobs are
+ * uploaded to the private `registration-captures` bucket first and the row stores `{ref,path}` refs.
  * On success the local row is updated to the server-returned status (e.g. `'pending'` = under review).
  * On repeated failure the row is dead-lettered (status remains `'pending_registration'` so the
  * user or supervisor can identify and retry manually; `retry_count` reflects the state).
@@ -107,6 +110,12 @@ export async function pushPendingRegistrationOutbox(
 
   for (const m of eligible) {
     try {
+      const capturesPayload = await prepareRegistrationCapturesPayload(
+        m.siteId,
+        m.id,
+        m.capturedAnglesJson ?? '{}',
+      );
+
       const serverRow = await insertRegistrationRequest({
         worker_name: m.workerName,
         role: m.role,
@@ -114,6 +123,8 @@ export async function pushPendingRegistrationOutbox(
         site_id: m.siteId,
         submitted_by: m.submittedBySupervisorId ?? null,
         status: 'pending_registration',
+        captured_angles_json:
+          Object.keys(capturesPayload).length > 0 ? capturesPayload : null,
       });
 
       await database.write(async () => {

@@ -25,7 +25,7 @@ WMDB `outbox_sync_status` uses the **same string values** for rows that mirror t
 |------|-----|------|
 | `pending` | `uploading` | Sync run selected row for batch insert; **`client_event_id`** assigned once if absent (idempotent server RPC) |
 | `uploading` | `pending` | Next sync start: **stuck reset** (app killed mid-request) — safe retry |
-| `uploading` | *mirror* | Batch insert returned a row — apply `computeLocalAttendanceMirrorFromRemote` |
+| `uploading` | *mirror* | Batch insert returned a row — apply `computeLocalAttendanceMirrorFromRemote` (Postgres **`insert_attendance_batch_idempotent`** sets `sync_status = verified` + `synced_at` on new insert / replay ACK) |
 | `failed` | `uploading` | Backoff expired (`retry_count` + `last_error_at`) and row retried |
 | `failed` | *(dead letter)* | `retry_count >= ATTENDANCE_MAX_RETRIES` — stop uploading; `fail_reason` set |
 
@@ -77,7 +77,7 @@ Runs **after** `pushPendingAttendanceOutbox` + `pushPendingRegistrationOutbox` +
 
 1. `pushPendingAttendanceOutbox`
 2. `pushPendingRegistrationOutbox` (parallel with 1 in `Promise.allSettled`)
-3. `syncRevocationsFromServer` (sequential after 1–2, if `siteId` present) — Edge `sync-revocations`; updates WMDB workers (see [`OFFLINE_IDEMPOTENCY.md`](./OFFLINE_IDEMPOTENCY.md))
+3. `syncRevocationsFromServer` (sequential after 1–2, if `siteId` present) — Edge `sync-revocations`; with `deviceId`, omit `since` so the server uses `devices.last_sync_at` as the watermark; updates WMDB workers (see [`OFFLINE_IDEMPOTENCY.md`](./OFFLINE_IDEMPOTENCY.md))
 4. `reconcileAttendanceFromServer` (sequential after 3, if `siteId` present)
 
 Also triggered by: **AppState** `active`, **interval** timer, **NetInfo** connected.

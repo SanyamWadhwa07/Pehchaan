@@ -2,7 +2,7 @@ import {requireSupabase} from '@/lib/supabase';
 import type {RegistrationRequestRow} from '@/lib/db/rows';
 
 const REG_COLUMNS =
-  'id, worker_name, role, aadhaar_ref_hash, site_id, submitted_by, status, review_note, created_at, approved_at';
+  'id, worker_name, role, aadhaar_ref_hash, site_id, submitted_by, status, review_note, created_at, approved_at, captured_angles_json';
 
 export type RegistrationInsert = {
   worker_name: string;
@@ -11,6 +11,8 @@ export type RegistrationInsert = {
   site_id: string;
   submitted_by?: string | null;
   status?: RegistrationRequestRow['status'];
+  /** Face captures — PostgREST `jsonb`; may include storage refs for large blobs. */
+  captured_angles_json?: RegistrationRequestRow['captured_angles_json'];
 };
 
 export async function insertRegistrationRequest(
@@ -25,6 +27,7 @@ export async function insertRegistrationRequest(
       site_id: row.site_id,
       submitted_by: row.submitted_by ?? null,
       status: row.status ?? 'pending',
+      captured_angles_json: row.captured_angles_json ?? null,
     })
     .select(REG_COLUMNS)
     .single();
@@ -49,6 +52,14 @@ export type ApproveRegistrationResult = {
   };
 };
 
+export type ApproveRegistrationOptions = {
+  /**
+   * Optional 512×float32 LE vector as standard base64 (2048 raw bytes).
+   * When set, Edge persists `workers.embedding_encrypted` and triggers `create-site-package`.
+   */
+  embeddingBase64?: string;
+};
+
 /**
  * Call the Edge `register-worker` function to approve a pending registration:
  * creates a `workers` row and marks the `registration_requests` row as `'approved'`.
@@ -57,11 +68,20 @@ export type ApproveRegistrationResult = {
  */
 export async function approveRegistrationRequest(
   registrationRequestId: string,
+  options?: ApproveRegistrationOptions,
 ): Promise<ApproveRegistrationResult> {
+  const body: Record<string, string> = {
+    registration_request_id: registrationRequestId,
+  };
+  const emb = options?.embeddingBase64?.trim();
+  if (emb) {
+    body.embedding_base64 = emb;
+  }
+
   const {data, error} = await requireSupabase().functions.invoke(
     'register-worker',
     {
-      body: {registration_request_id: registrationRequestId},
+      body,
     },
   );
   if (error) {
