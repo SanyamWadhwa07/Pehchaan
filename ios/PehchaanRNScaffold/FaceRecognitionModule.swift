@@ -12,6 +12,9 @@ import TensorFlowLite
 @objc(FaceRecognitionModule)
 class FaceRecognitionModule: NSObject {
 
+    // JS sees NativeModules.FaceRecognition (matches Android MODULE_NAME)
+    @objc override static func moduleName() -> String! { return "FaceRecognition" }
+
     // MARK: - Constants
 
     private let MFN_SIZE  = 112
