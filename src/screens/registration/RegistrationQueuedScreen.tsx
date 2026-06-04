@@ -51,6 +51,7 @@ export function RegistrationQueuedScreen({
         languagePreference: snapshot.languagePreference,
         frontalCaptureBase64: snapshot.frontalCaptureBase64,
         frontalEmbeddingBase64: snapshot.frontalEmbeddingBase64,
+        localWorkerId: snapshot.localWorkerId,
         submittedBySupervisorId: userId ?? null,
         siteId,
       });

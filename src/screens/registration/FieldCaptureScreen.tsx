@@ -1,11 +1,18 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import {
   Camera,
   useCameraDevice,
   type Camera as CameraType,
 } from 'react-native-vision-camera';
 import {useTranslation} from 'react-i18next';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import type {StackScreenProps} from '@react-navigation/stack';
 
 import {Button} from '@/components/Button';
@@ -24,6 +31,7 @@ import {
   STUB_FACE_BOX,
 } from '@/services/faceRecognition';
 import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
 import type {QualityCheck} from '@/types';
 
 type Props = StackScreenProps<RegistrationStackParamList, 'FieldCapture'>;
@@ -153,29 +161,48 @@ export function FieldCaptureScreen({navigation}: Props): React.JSX.Element {
         onError={onCameraError}
       />
       <FaceOverlay box={STUB_FACE_BOX} passed={quality?.passed ?? false} />
-      <View style={styles.panel}>
-        <Text style={styles.title}>{t('registration.capturePhoto')}</Text>
-        <Text style={styles.hint}>{t('registration.captureInstruction')}</Text>
-        {feedbackKey ? (
-          <Text
-            style={[
-              styles.feedback,
-              quality?.passed ? styles.pass : styles.fail,
-            ]}>
-            {t(feedbackKey)}
-          </Text>
-        ) : (
-          <ActivityIndicator color={colors.accent} />
-        )}
-        {captureError ? <Text style={styles.fail}>{captureError}</Text> : null}
-        <Button
-          label={acceptLabel}
-          onPress={() => void onAccept()}
-          disabled={!quality?.passed || accepting}
-          loading={accepting}
-          style={styles.btn}
-        />
-      </View>
+
+      <SafeAreaView
+        style={styles.panelSafe}
+        edges={['bottom']}
+        pointerEvents="box-none">
+        <View style={styles.panel}>
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.panelScroll}>
+            <Text style={styles.title}>{t('registration.capturePhoto')}</Text>
+            <Text style={styles.hint}>
+              {t('registration.captureInstruction')}
+            </Text>
+            {feedbackKey ? (
+              <Text
+                style={[
+                  styles.feedback,
+                  quality?.passed ? styles.pass : styles.fail,
+                ]}>
+                {t(feedbackKey)}
+              </Text>
+            ) : (
+              <ActivityIndicator
+                color={colors.accent}
+                style={styles.feedbackSpinner}
+              />
+            )}
+            {captureError ? (
+              <Text style={styles.fail}>{captureError}</Text>
+            ) : null}
+            <Button
+              label={acceptLabel}
+              onPress={() => void onAccept()}
+              disabled={!quality?.passed || accepting}
+              loading={accepting}
+              style={styles.btn}
+            />
+          </ScrollView>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
@@ -188,28 +215,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background,
   },
-  panel: {
+  panelSafe: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    padding: 20,
-    paddingBottom: 36,
+    zIndex: 10,
+  },
+  panel: {
     backgroundColor: colors.panelOnCamera,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    maxHeight: '45%',
+    borderTopWidth: 1,
+    borderColor: colors.border,
+  },
+  panelScroll: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: spacing.xs,
   },
-  hint: {fontSize: 15, color: colors.textSecondary, marginBottom: 12},
-  feedback: {fontSize: 15, marginBottom: 12},
+  hint: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  feedback: {fontSize: 15, marginBottom: spacing.sm},
+  feedbackSpinner: {marginBottom: spacing.sm},
   pass: {color: colors.success},
   fail: {color: colors.error},
   muted: {color: colors.textMuted},
-  btn: {marginTop: 8},
+  btn: {marginTop: spacing.sm},
 });

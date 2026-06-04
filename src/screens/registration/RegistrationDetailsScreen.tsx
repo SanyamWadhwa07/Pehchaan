@@ -1,5 +1,14 @@
 import React, {useState} from 'react';
-import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTranslation} from 'react-i18next';
 import type {StackScreenProps} from '@react-navigation/stack';
 
@@ -24,6 +33,7 @@ export function RegistrationDetailsScreen({
   navigation,
 }: Props): React.JSX.Element {
   const {t} = useTranslation();
+  const insets = useSafeAreaInsets();
   const {state, updateState} = useFieldRegistration();
 
   const [name, setName] = useState(state.workerName);
@@ -61,91 +71,109 @@ export function RegistrationDetailsScreen({
     navigation.navigate('FieldCapture');
   };
 
+  const bottomPad = Math.max(insets.bottom, spacing.md) + spacing.xl;
+
   return (
-    <Screen>
-      <ScrollView keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{t('registration.title')}</Text>
-        <Text style={styles.step}>{t('registration.stepDetails')}</Text>
+    <Screen padded={false}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          style={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {paddingBottom: bottomPad},
+          ]}>
+          <Text style={styles.step}>{t('registration.stepDetails')}</Text>
 
-        <TextField
-          label={t('registration.name')}
-          value={name}
-          onChangeText={setName}
-          error={errors.name}
-        />
-        <TextField
-          label={t('registration.role')}
-          value={role}
-          onChangeText={setRole}
-          error={errors.role}
-        />
-        <TextField
-          label={t('registration.idNumber')}
-          value={idNumber}
-          onChangeText={setIdNumber}
-          error={errors.idNumber}
-          secureTextEntry
-        />
-        <TextField
-          label={t('registration.contactNumber')}
-          value={contact}
-          onChangeText={setContact}
-          keyboardType="phone-pad"
-        />
-
-        <Text style={styles.langLabel}>
-          {t('registration.languagePreference')}
-        </Text>
-        <View style={styles.langRow}>
-          {(['en', 'hi'] as AppLanguage[]).map(lang => (
-            <Pressable
-              key={lang}
-              style={[
-                styles.langChip,
-                language === lang && styles.langChipActive,
-              ]}
-              onPress={() => setLanguage(lang)}>
-              <Text
-                style={[
-                  styles.langChipText,
-                  language === lang && styles.langChipTextActive,
-                ]}>
-                {lang === 'en' ? t('settings.english') : t('settings.hindi')}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {__DEV__ ? (
-          <Button
-            label={t('registration.fillDemoWorker')}
-            variant="secondary"
-            onPress={() => {
-              const preset =
-                DEMO_FIELD_WORKER_PRESETS[
-                  Math.floor(Math.random() * DEMO_FIELD_WORKER_PRESETS.length)
-                ]!;
-              setName(preset.workerName);
-              setRole(preset.role);
-              setLanguage(preset.languagePreference);
-              setIdNumber('123456789012');
-            }}
-            style={{marginTop: spacing.md}}
+          <TextField
+            label={t('registration.name')}
+            value={name}
+            onChangeText={setName}
+            error={errors.name}
           />
-        ) : null}
+          <TextField
+            label={t('registration.role')}
+            value={role}
+            onChangeText={setRole}
+            error={errors.role}
+          />
+          <TextField
+            label={t('registration.idNumber')}
+            value={idNumber}
+            onChangeText={setIdNumber}
+            error={errors.idNumber}
+            secureTextEntry
+          />
+          <TextField
+            label={t('registration.contactNumber')}
+            value={contact}
+            onChangeText={setContact}
+            keyboardType="phone-pad"
+          />
 
-        <Button
-          label={t('common.next')}
-          onPress={onNext}
-          style={{marginTop: spacing.lg}}
-        />
-      </ScrollView>
+          <Text style={styles.langLabel}>
+            {t('registration.languagePreference')}
+          </Text>
+          <View style={styles.langRow}>
+            {(['en', 'hi'] as AppLanguage[]).map(lang => (
+              <Pressable
+                key={lang}
+                style={[
+                  styles.langChip,
+                  language === lang && styles.langChipActive,
+                ]}
+                onPress={() => setLanguage(lang)}>
+                <Text
+                  style={[
+                    styles.langChipText,
+                    language === lang && styles.langChipTextActive,
+                  ]}>
+                  {lang === 'en' ? t('settings.english') : t('settings.hindi')}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {__DEV__ ? (
+            <Button
+              label={t('registration.fillDemoWorker')}
+              variant="secondary"
+              onPress={() => {
+                const preset =
+                  DEMO_FIELD_WORKER_PRESETS[
+                    Math.floor(Math.random() * DEMO_FIELD_WORKER_PRESETS.length)
+                  ]!;
+                setName(preset.workerName);
+                setRole(preset.role);
+                setLanguage(preset.languagePreference);
+                setIdNumber('123456789012');
+              }}
+              style={{marginTop: spacing.md}}
+            />
+          ) : null}
+
+          <Button
+            label={t('common.next')}
+            onPress={onNext}
+            style={{marginTop: spacing.lg}}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {...typography.heading, marginBottom: spacing.xs},
+  flex: {flex: 1},
+  scroll: {flex: 1},
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
   step: {
     ...typography.body,
     color: colors.textMuted,

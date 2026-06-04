@@ -1,3 +1,5 @@
+import RNFS from 'react-native-fs';
+
 import {requireSupabase} from '@/lib/supabase';
 import {base64ToBytes} from '@/services/sitePackage/decryptSitePackage';
 
@@ -66,20 +68,32 @@ export async function prepareRegistrationCapturesPayload(
   const out: RegistrationCapturesPayload = {};
 
   for (const angle of keys) {
+    if (angle === 'embedding_base64' && typeof parsed[angle] === 'string') {
+      out.embedding_base64 = parsed[angle] as string;
+      continue;
+    }
+
     const raw = parsed[angle];
     if (typeof raw !== 'string') {
       continue;
     }
     const val = raw;
+
+    const storageAngle = angle === 'frontal_local_path' ? 'frontal' : angle;
+    const b64 =
+      angle === 'frontal_local_path'
+        ? await RNFS.readFile(val, 'base64')
+        : stripDataUrlBase64(val);
+
     const uploadThis =
-      totalLen > CAPTURES_INLINE_MAX_CHARS || val.length > CAPTURE_SINGLE_MAX_CHARS;
+      angle === 'frontal_local_path' ||
+      totalLen > CAPTURES_INLINE_MAX_CHARS ||
+      val.length > CAPTURE_SINGLE_MAX_CHARS;
 
     if (!uploadThis) {
-      out[angle] = val;
+      out[storageAngle] = b64;
       continue;
     }
-
-    const b64 = stripDataUrlBase64(val);
     let bytes: Uint8Array;
     try {
       bytes = base64ToBytes(b64);
@@ -87,7 +101,7 @@ export async function prepareRegistrationCapturesPayload(
       throw new Error(`registration_capture_base64_invalid:${angle}`);
     }
 
-    const path = `${siteId}/registration-captures/${safeLocal}/${angle}.bin`;
+    const path = `${siteId}/registration-captures/${safeLocal}/${storageAngle}.bin`;
     const {error} = await supabase.storage
       .from(REGISTRATION_CAPTURES_BUCKET)
       .upload(path, bytes, {
@@ -101,7 +115,7 @@ export async function prepareRegistrationCapturesPayload(
       );
     }
 
-    out[angle] = {
+    out[storageAngle] = {
       ref: 'storage',
       bucket: REGISTRATION_CAPTURES_BUCKET,
       path,
