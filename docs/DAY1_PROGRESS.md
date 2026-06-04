@@ -1,7 +1,7 @@
 # Pehchaan — Day 1 progress (NHAI Hackathon 7.0)
 
 **Last updated:** 2026-06-02  
-**Companion:** [DAY2_TASKS.md](./DAY2_TASKS.md) (Anoushka Day 2 — do not merge into this file) · [STORAGE_AND_WATERMELON_USER_TASKS.md](./STORAGE_AND_WATERMELON_USER_TASKS.md) · [README](../README.md) · [Implementation plan](../Pehchaan_Implementation_Plan_v2.md)
+**Companion:** [DAY2_TASKS.md](./DAY2_TASKS.md) (Anoushka Day 2 — do not merge into this file) · [DAY3_TASKS.md](./DAY3_TASKS.md) (Day 3 — sync, conflicts, revocation, trust) · [STORAGE_AND_WATERMELON_USER_TASKS.md](./STORAGE_AND_WATERMELON_USER_TASKS.md) · [README](../README.md) · [Implementation plan](../Pehchaan_Implementation_Plan_v2.md)
 
 This file tracks **Day 1 only** (foundation: schema, RLS, auth shell, storage bucket, local DB schema, repos, verify script). **Site package AES builder, local decrypt, sync wiring, registration endpoints** live in **Day 2** — see [`DAY2_TASKS.md`](./DAY2_TASKS.md).
 

@@ -6,3 +6,6 @@ verify_jwt = true
 
 [functions.register-worker]
 verify_jwt = true
+
+[functions.sync-revocations]
+verify_jwt = true

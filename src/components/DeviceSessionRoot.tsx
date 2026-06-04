@@ -28,8 +28,19 @@ import { useSyncScheduler } from '@/services/sync';
 type Props = { children: React.ReactNode };
 
 function DeviceSyncMount({ children }: Props): React.JSX.Element {
+  const siteId = useAuthStore((s) => {
+    const raw = s.session?.user?.app_metadata?.site_id;
+    return typeof raw === 'string' ? raw : undefined;
+  });
+  const deviceId = useAuthStore((s) => {
+    const raw = s.session?.user?.app_metadata?.device_id;
+    return typeof raw === 'string' ? raw : undefined;
+  });
+
   const { runSync } = useSyncScheduler({
     database,
+    siteId,
+    deviceId,
     intervalMs: 5 * 60_000,
     onSyncComplete: (r) => {
       if (__DEV__) {
@@ -38,9 +49,19 @@ function DeviceSyncMount({ children }: Props): React.JSX.Element {
           'deadLettered:', r.attendance.deadLettered,
           'registration uploaded:', r.registration.uploaded,
           'deadLettered:', r.registration.deadLettered,
+          'revocations applied:', r.revocations?.applied ?? 0,
+          'reconcile updated:', r.reconcileAttendance?.updated ?? 0,
         );
-        if (r.attendance.errors.length || r.registration.errors.length) {
-          console.warn('[sync] errors:', [...r.attendance.errors, ...r.registration.errors]);
+        if (
+          r.attendance.errors.length ||
+          r.registration.errors.length ||
+          (r.revocations?.errors?.length ?? 0) > 0
+        ) {
+          console.warn('[sync] errors:', [
+            ...r.attendance.errors,
+            ...r.registration.errors,
+            ...(r.revocations?.errors ?? []),
+          ]);
         }
       }
     },

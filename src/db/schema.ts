@@ -4,7 +4,7 @@ import { appSchema, tableSchema } from '@nozbe/watermelondb';
  * Local SQLite schema (WatermelonDB).
  * Mirrors Supabase row shapes where applicable — see @/lib/db/rows and @/types.
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const schema = appSchema({
   version: SCHEMA_VERSION,
@@ -46,6 +46,8 @@ export const schema = appSchema({
         { name: 'integration_push_status', type: 'string' },
         { name: 'retry_count', type: 'number' },
         { name: 'last_error_at', type: 'number', isOptional: true },
+        /** Stable id per tap — sent as Postgres `client_event_id` for idempotent batch insert. */
+        { name: 'client_event_id', type: 'string', isOptional: true },
       ],
     }),
     tableSchema({

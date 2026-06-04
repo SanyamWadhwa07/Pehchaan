@@ -4,6 +4,8 @@
 
 **Day 1 only:** [`DAY1_PROGRESS.md`](./DAY1_PROGRESS.md) — do not mix Day 2 delivery into that file.
 
+**Day 3 next:** [`DAY3_TASKS.md`](./DAY3_TASKS.md) — sync state machine completion, conflicts, revocation sync, device trust.
+
 **Policies & secrets (hackathon):**
 
 - [`SUPABASE_DASHBOARD_SECRETS_SAMPLE.md`](./SUPABASE_DASHBOARD_SECRETS_SAMPLE.md)
