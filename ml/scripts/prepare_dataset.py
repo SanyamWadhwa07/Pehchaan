@@ -89,14 +89,20 @@ def estimate_yaw_pitch(face_landmarks, image_shape) -> tuple[float, float]:
     return float(yaw), float(pitch)
 
 
-def prepare_dataset(input_dir: str, output_dir: str, split: tuple = (0.8, 0.1, 0.1)):
+def prepare_dataset(input_dir: str, output_dir: str, split: tuple = (0.8, 0.1, 0.1),
+                    skip_ita_filter: bool = False, skip_pose_filter: bool = False):
     input_path = Path(input_dir)
     output_path = Path(output_dir)
 
-    mp_face_mesh = mp.solutions.face_mesh
-    face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1)
+    need_mediapipe = not skip_pose_filter
+    face_mesh = None
+    if need_mediapipe:
+        mp_face_mesh = mp.solutions.face_mesh
+        face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1)
 
     all_images = list(input_path.rglob("*.jpg")) + list(input_path.rglob("*.png"))
+    # Exclude meta files (failure logs etc.)
+    all_images = [p for p in all_images if p.parent != input_path]
     print(f"Found {len(all_images)} images in {input_dir}")
 
     accepted = []
@@ -109,31 +115,39 @@ def prepare_dataset(input_dir: str, output_dir: str, split: tuple = (0.8, 0.1, 0
         if img is None:
             continue
 
-        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        result = face_mesh.process(rgb)
+        ita = compute_ita(img) if not skip_ita_filter else 0.0
+        yaw, pitch = 0.0, 0.0
 
-        if not result.multi_face_landmarks:
-            rejected_no_face += 1
-            continue
+        if need_mediapipe:
+            rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            result = face_mesh.process(rgb)
 
-        landmarks = result.multi_face_landmarks[0]
+            if not result.multi_face_landmarks:
+                rejected_no_face += 1
+                continue
 
-        # Skin tone filter
-        ita = compute_ita(img)
-        if ita > ITA_THRESHOLD:
-            rejected_ita += 1
-            continue
+            landmarks = result.multi_face_landmarks[0]
 
-        # Head pose filter
-        yaw, pitch = estimate_yaw_pitch(landmarks, img.shape)
-        if abs(yaw) > YAW_LIMIT or abs(pitch) > PITCH_LIMIT:
-            rejected_pose += 1
-            continue
+            # Skin tone filter (skip for datasets already curated as Indian)
+            if not skip_ita_filter and ita > ITA_THRESHOLD:
+                rejected_ita += 1
+                continue
+
+            # Head pose filter
+            yaw, pitch = estimate_yaw_pitch(landmarks, img.shape)
+            if abs(yaw) > YAW_LIMIT or abs(pitch) > PITCH_LIMIT:
+                rejected_pose += 1
+                continue
+        else:
+            # Both filters skipped — MTCNN-aligned images are already clean face crops
+            if not skip_ita_filter and ita > ITA_THRESHOLD:
+                rejected_ita += 1
+                continue
 
         identity = img_path.parent.name
         accepted.append({"path": img_path, "identity": identity, "ita": ita, "yaw": yaw, "pitch": pitch})
 
-    print(f"\nAccepted: {len(accepted)} | Rejected — no face: {rejected_no_face}, "
+    print(f"\nAccepted: {len(accepted)} | Rejected -- no face: {rejected_no_face}, "
           f"skin tone: {rejected_ita}, pose: {rejected_pose}")
 
     if not accepted:
@@ -188,7 +202,13 @@ if __name__ == "__main__":
     parser.add_argument("--input_dir", required=True, help="Raw dataset root (identity folders inside)")
     parser.add_argument("--output_dir", default="data/filtered_indian", help="Output directory")
     parser.add_argument("--ita_threshold", type=float, default=ITA_THRESHOLD,
-                        help="ITA cutoff — lower = darker only. Default 28°")
+                        help="ITA cutoff -- lower = darker only. Default 28 degrees")
+    parser.add_argument("--skip_ita_filter", action="store_true",
+                        help="Skip skin tone filtering (use for datasets already curated as Indian)")
+    parser.add_argument("--skip_pose_filter", action="store_true",
+                        help="Skip MediaPipe pose filter (use for MTCNN-aligned datasets)")
     args = parser.parse_args()
 
-    prepare_dataset(args.input_dir, args.output_dir)
+    prepare_dataset(args.input_dir, args.output_dir,
+                    skip_ita_filter=args.skip_ita_filter,
+                    skip_pose_filter=args.skip_pose_filter)

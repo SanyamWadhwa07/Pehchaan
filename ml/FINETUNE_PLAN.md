@@ -29,77 +29,71 @@ The test benchmark is our own Indian-demographic val split, not LFW (LFW is West
 
 ## Data Sources
 
-### Priority order (highest quality first)
+### Acquired datasets (Kaggle, already downloaded)
 
-| # | Source | Images | Identities | How to get | Status |
+| # | Source | Images | Identities | Path | Status |
 |---|---|---|---|---|---|
-| 1 | **IMFDB** (Indian Movie Face Database) | ~34,500 | 100 | `curl https://cvit.iiit.ac.in/projects/IMFDB/data/IMFDB_final.zip` | **Get first** |
-| 2 | **LFW parquet (Indian subset)** | ~500–1000 est. | ~80–150 est. | Already have — run `extract_indian_from_parquet.py` | Ready to run |
-| 3 | **MS1MV3 rebalanced (Indian subset)** | ~50k–100k | ~2000+ | `huggingface-cli download Tonry/ms1mv3_rebalanced` (large, 8+ GB) | Optional — if time allows |
-| 4 | **Collected/consented faces** | Any | Any | Team photos + consented workers, min 5 per person | Fallback |
+| 1 | **kaggle_indian_actors** (nagasai524) | 5,972 | 135 | `data/raw/kaggle_indian_actors/` | Done |
+| 2 | **kaggle_indian2** (aryankashyapnaveen) | 40,541 | 247 | `data/raw/kaggle_indian2/` | Done |
+| **Merged** | **data/merged_indian/** | **46,681** | **231** | After dedup + min_images=5 | **Done** |
 
-**Minimum viable for fine-tuning:** 300 identities × 5 images = 1,500 images. IMFDB alone gives 100 identities × 345 avg = achievable with augmentation.
+**Why sufficient:** 231 identities × avg 202 images = well above the 300×5 minimum. With 10× augmentation → ~466k training images.
 
-**Realistic for hackathon:** IMFDB (100 identities) + LFW Indian subset (~100–150 identities) = ~200–250 identities. With 10× augmentation → ~15k–20k training images. This is enough.
+IMFDB and LFW parquet are no longer needed.
 
 ---
 
 ## Full Pipeline
 
 ```
-Step 1  Download IMFDB
-        └── curl → ml/data/raw/imfdb/
+Step 1  [DONE] Merge Kaggle datasets
+        └── python ml/scripts/merge_datasets.py
+                --ds1 data/raw/kaggle_indian_actors/actors_dataset/Indian_actors_faces
+                --ds2 data/raw/kaggle_indian2
+                --output data/merged_indian
+        Output: 231 identities, 46,681 images
 
-Step 2  Filter LFW parquet for Indian faces
-        └── python ml/scripts/extract_indian_from_parquet.py
-                --parquet ml/train-00000-of-00001.parquet
-                --output_dir data/filtered_indian
-                --ita_threshold 28.0
-                --min_imgs 5
-
-Step 3  Convert IMFDB to identity-folder layout
-        └── python ml/scripts/convert_imfdb.py          ← needs to be written
-                --input_dir data/raw/imfdb
-                --output_dir data/filtered_indian        ← merge into same folder
-
-Step 4  MTCNN align ALL images to 112×112
-        └── python ml/scripts/align_dataset.py          ← needs to be written
-                --input_dir data/filtered_indian
+Step 2  MTCNN align ALL images to 112x112
+        └── python ml/scripts/align_dataset.py
+                --input_dir data/merged_indian
                 --output_dir data/aligned_indian
-        (Replaces any Haar-cropped images with proper ArcFace-canonical crops)
+                --workers 4
+        (Script written — running Day 2)
 
-Step 5  train/val/test split + pose filter
+Step 3  train/val/test split + pose filter (skip ITA — already Indian dataset)
         └── python ml/scripts/prepare_dataset.py
                 --input_dir data/aligned_indian
                 --output_dir data/split_indian
+                --skip_ita_filter
         Output: data/split_indian/{train,val,test}/
         Target: 80% train / 10% val / 10% test, stratified by identity
 
-Step 6  Augment train split only (NOT val/test)
+Step 4  Augment train split only (NOT val/test)
         └── python ml/augmentation/augment.py
                 --input_dir data/split_indian/train
                 --output_dir data/augmented_indian/train
                 --augmentations_per_image 10
         Val and test: copy as-is (no augmentation — we measure real performance)
 
-Step 7  Fine-tune
-        └── python ml/scripts/finetune.py               ← needs to be written
+Step 5  Fine-tune
+        └── python ml/scripts/finetune.py
                 --data_dir data/augmented_indian
                 --base_model ml/models/mobilefacenet_base.onnx
                 --output_dir ml/models/finetuned
+        (Script written — run Day 3)
 
-Step 8  Evaluate on Indian val split
+Step 6  Evaluate on Indian val split
         └── python ml/scripts/test_model.py (with --data_dir pointing at Indian val)
-        Check: same-pair mean ≥ 0.85, FAR ≤ 1% at 0.92
+        Check: same-pair mean >= 0.85, FAR <= 1% at 0.92
 
-Step 9  Re-quantise to INT8 TFLite
+Step 7  Re-quantise to INT8 TFLite
         └── python ml/scripts/quantise.py
                 --model ml/models/finetuned/mobilefacenet_indian_ft.onnx
                 --calib_dir data/augmented_indian/train
                 --output ml/models/mobilefacenet_indian.tflite
-        (Overwrites the current tflite — check quantisation drift stays ≥ 0.92)
+        (Overwrites the current tflite — check quantisation drift stays >= 0.92)
 
-Step 10 Final benchmark
+Step 8  Final benchmark
         └── python ml/scripts/test_model.py
         Must hit all 4 target metrics before submission
 ```
@@ -175,15 +169,17 @@ Use the `data/split_indian/val/` split — pairs built the same way as test_mode
 
 ---
 
-## Scripts That Need to Be Written
+## Scripts Status
 
-| Script | Purpose | Input → Output |
+| Script | Purpose | Status |
 |---|---|---|
-| `ml/scripts/convert_imfdb.py` | IMFDB has a custom folder structure — convert to `<identity>/000.jpg` layout | `data/raw/imfdb/` → `data/filtered_indian/` |
-| `ml/scripts/align_dataset.py` | MTCNN-align every image to ArcFace canonical 112×112 | `data/filtered_indian/` → `data/aligned_indian/` |
-| `ml/scripts/finetune.py` | Main fine-tuning loop with ArcFace loss | `data/augmented_indian/` + base ONNX → finetuned ONNX |
-
-Everything else (`extract_indian_from_parquet.py`, `prepare_dataset.py`, `augment.py`, `quantise.py`, `test_model.py`) is already written and usable.
+| `ml/scripts/merge_datasets.py` | Merge + dedup Kaggle datasets into unified identity-folder layout | **Written + run** |
+| `ml/scripts/align_dataset.py` | MTCNN-align every image to ArcFace canonical 112x112 | **Written, running** |
+| `ml/scripts/finetune.py` | Main fine-tuning loop with ArcFace loss | **Written** |
+| `ml/scripts/prepare_dataset.py` | train/val/test split + pose filter | Already existed; added `--skip_ita_filter` flag |
+| `ml/augmentation/augment.py` | 10x augmentation pipeline | Already written |
+| `ml/scripts/quantise.py` | INT8 TFLite quantisation | Already written |
+| `ml/scripts/test_model.py` | Benchmark TAR/FAR | Already written |
 
 ---
 
@@ -191,8 +187,8 @@ Everything else (`extract_indian_from_parquet.py`, `prepare_dataset.py`, `augmen
 
 | Day | Task | Output |
 |---|---|---|
-| **Day 2 (today)** | Download IMFDB, run `extract_indian_from_parquet.py` on LFW, write `convert_imfdb.py` + `align_dataset.py` | `data/aligned_indian/` ready |
-| **Day 3** | Run `prepare_dataset.py` + `augment.py`, write + run `finetune.py`, first checkpoint | First val metrics |
+| **Day 2 (today)** | Merge Kaggle datasets, write + run `align_dataset.py`, write `finetune.py`, run `prepare_dataset.py` + `augment.py` | `data/augmented_indian/` ready |
+| **Day 3** | Run `finetune.py` (30 epochs), first checkpoint, iterate | First val metrics; best model saved |
 | **Day 4** | Iterate threshold, re-quantise, run final `test_model.py` benchmark | Updated TFLite model hitting targets |
 | **Day 5 (June 5)** | APK + submission checklist | Ship |
 

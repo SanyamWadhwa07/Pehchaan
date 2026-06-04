@@ -33,10 +33,6 @@ jobs:
             tf_keras onnx-graphsurgeon psutil ai-edge-litert sng4onnx \
             onnx2tf
 
-      - name: Download base model
-        working-directory: ml
-        run: venv/bin/python scripts/download_models.py
-
       - name: Convert ONNX -> TFLite INT8
         working-directory: ml
         run: |
@@ -47,7 +43,7 @@ jobs:
 
           os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
           MODELS = Path("models")
-          ONNX_SRC = MODELS / "mobilefacenet_base.onnx"
+          ONNX_SRC = MODELS / "mobilefacenet_indian_int8.onnx"
           TFLITE_OUT = MODELS / "mobilefacenet_indian.tflite"
 
           print("Converting ONNX -> TF SavedModel via onnx2tf...")

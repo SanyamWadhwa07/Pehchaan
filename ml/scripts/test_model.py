@@ -24,8 +24,6 @@ import numpy as np
 import cv2
 
 MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
-TFLITE_MODEL = MODELS_DIR / "mobilefacenet_indian.tflite"
-ONNX_MODEL   = MODELS_DIR / "mobilefacenet_base.onnx"
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "lfw_test"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -317,7 +315,7 @@ def report(name: str, sims: list, labels: list) -> None:
         acc_s = ((preds == labels).sum()) / len(labels) * 100
         if acc_s > best_acc:
             best_acc, best_thr = acc_s, float(thr_sweep)
-    print(f"\n  *** OPTIMAL threshold: {best_thr:.2f}  →  best accuracy {best_acc:.2f}% ***")
+    print(f"\n  *** OPTIMAL threshold: {best_thr:.2f}  ->  best accuracy {best_acc:.2f}% ***")
     print(f"  (0.92 is the POST-FINE-TUNE target — base model will be lower)")
     print()
 
@@ -378,54 +376,198 @@ def drift_report(tflite_model: TFLiteModel, onnx_model: OnnxModel, pairs: list) 
 # Main
 # ---------------------------------------------------------------------------
 
+def decode_img_path(img_path: Path) -> np.ndarray | None:
+    """Read image from file path (supports jpg/png/webp) and return aligned 112x112 crop."""
+    img_bytes = img_path.read_bytes()
+    return decode_img(img_bytes)
+
+
+def probe_flat_dir(probe_dir: Path, model, model_name: str) -> None:
+    """
+    Run inference on a flat folder of images (no identity pairs).
+    Prints per-image face detection status and a pairwise similarity matrix.
+    Useful for sanity-checking the model on real-world photos.
+    """
+    exts = ("*.jpg", "*.jpeg", "*.png", "*.webp", "*.bmp")
+    files = []
+    for ext in exts:
+        files.extend(probe_dir.glob(ext))
+    files = sorted(files)
+
+    if not files:
+        print(f"  [WARN] No images found in {probe_dir}")
+        return
+
+    print(f"\n{'='*60}")
+    print(f"  Probe: {model_name} on {probe_dir.name}/ ({len(files)} images)")
+    print(f"{'='*60}")
+    print(f"\n  {'Image':<55}  Face  Emb-norm")
+    print(f"  {'-'*72}")
+
+    embeddings = []
+    names = []
+    for f in files:
+        face = decode_img_path(f)
+        short = f.name[:52]
+        if face is None:
+            print(f"  {short:<55}  MISS  -")
+            continue
+        emb = model.embed(face).flatten()
+        norm = np.linalg.norm(emb)
+        emb_normed = emb / (norm + 1e-8)
+        embeddings.append(emb_normed)
+        names.append(f.stem[:20])
+        print(f"  {short:<55}  ok    {norm:.4f}")
+
+    if len(embeddings) < 2:
+        print("  [WARN] Need >= 2 detected faces for similarity matrix")
+        return
+
+    E = np.stack(embeddings)
+    sim_matrix = E @ E.T  # shape (N, N)
+
+    print(f"\n  Pairwise similarity matrix ({len(embeddings)} faces detected):")
+    header = "  " + " " * 22 + "".join(f"{n[:6]:>8}" for n in names)
+    print(header)
+    for i, ni in enumerate(names):
+        row = f"  {ni:<22}" + "".join(f"{sim_matrix[i,j]:>8.3f}" for j in range(len(names)))
+        print(row)
+
+    # Stats for off-diagonal pairs (all different people)
+    n = len(embeddings)
+    off_diag = [sim_matrix[i, j] for i in range(n) for j in range(n) if i != j]
+    off_diag = np.array(off_diag)
+    print(f"\n  Off-diagonal (different-person) similarity:")
+    print(f"    mean={off_diag.mean():.4f}  std={off_diag.std():.4f}  "
+          f"min={off_diag.min():.4f}  max={off_diag.max():.4f}")
+    if off_diag.max() < 0.30:
+        print(f"  [ok] All different-person pairs below 0.30 — model will not false-match these workers")
+    elif off_diag.max() < 0.50:
+        print(f"  [ok] Max diff-pair similarity {off_diag.max():.3f} — within safe range at threshold 0.30")
+    else:
+        print(f"  [WARN] Some diff-pairs above 0.50 — check those image pairs manually")
+
+
+def load_indian_test_dir(test_dir: Path, max_same: int = 600, max_diff: int = 600):
+    """
+    Build same/diff pairs from an identity-subfolder directory.
+    Structure: test_dir/<identity_name>/<image>.jpg
+    """
+    import random
+    random.seed(42)
+
+    identity_map = {}
+    for id_dir in sorted(test_dir.iterdir()):
+        if not id_dir.is_dir():
+            continue
+        imgs = list(id_dir.glob("*.jpg")) + list(id_dir.glob("*.png"))
+        if len(imgs) >= 2:
+            identity_map[id_dir.name] = imgs
+
+    identities = list(identity_map.keys())
+    print(f"  Found {len(identities)} identities with >= 2 images in {test_dir.name}")
+
+    same_pairs = []
+    for name, imgs in identity_map.items():
+        same_pairs.append((imgs[0].read_bytes(), imgs[1].read_bytes(), 1))
+        if len(same_pairs) >= max_same:
+            break
+
+    diff_pairs = []
+    attempts = 0
+    while len(diff_pairs) < min(max_diff, len(same_pairs)) and attempts < 10000:
+        a, b = random.sample(identities, 2)
+        diff_pairs.append((identity_map[a][0].read_bytes(), identity_map[b][0].read_bytes(), 0))
+        attempts += 1
+
+    print(f"  Built {len(same_pairs)} same-pairs, {len(diff_pairs)} diff-pairs")
+    return same_pairs, diff_pairs
+
+
 def main():
-    print("=== Pehchaan — MobileFaceNet Model Accuracy Test ===\n")
+    import argparse
+    parser = argparse.ArgumentParser(description="Benchmark MobileFaceNet TAR/FAR")
+    parser.add_argument("--onnx_model", default=str(MODELS_DIR / "mobilefacenet_base.onnx"),
+                        help="ONNX model to evaluate (default: base; after fine-tune pass finetuned/mobilefacenet_indian_ft.onnx)")
+    parser.add_argument("--tflite_model", default=str(MODELS_DIR / "mobilefacenet_indian.tflite"),
+                        help="TFLite INT8 model to evaluate")
+    parser.add_argument("--skip_tflite", action="store_true",
+                        help="Skip TFLite evaluation (useful before CI produces the .tflite)")
+    parser.add_argument("--test_dir", default=None,
+                        help="Indian test set directory (identity subfolders). "
+                             "Default: data/split_indian/test. Use this instead of LFW for Indian demographic eval.")
+    parser.add_argument("--probe_dir", default=None,
+                        help="Flat folder of images (any format incl. webp) — no labels needed. "
+                             "Runs inference on each image and prints pairwise similarity matrix.")
+    args = parser.parse_args()
 
-    for m in [TFLITE_MODEL, ONNX_MODEL]:
-        if not m.exists():
-            print(f"[FAIL] Missing: {m}")
-            sys.exit(1)
+    onnx_model_path = Path(args.onnx_model)
+    tflite_model_path = Path(args.tflite_model)
 
-    # Download data
-    print("[1/4] Fetching LFW data from HuggingFace...")
-    print("[2/4] Loading pairs from parquet shards...")
-    same_pairs, diff_pairs = load_lfw_from_parquet()
+    print("=== Pehchaan - MobileFaceNet Model Accuracy Test ===\n")
+
+    if not onnx_model_path.exists():
+        print(f"[FAIL] Missing ONNX model: {onnx_model_path}")
+        sys.exit(1)
+    if not args.skip_tflite and not tflite_model_path.exists():
+        print(f"[WARN] TFLite model not found: {tflite_model_path}")
+        print("       Run with --skip_tflite to evaluate ONNX only")
+        sys.exit(1)
+
+    # Resolve test dataset
+    indian_default = Path(__file__).resolve().parents[2] / "data" / "split_indian" / "test"
+    test_dir = Path(args.test_dir) if args.test_dir else (indian_default if indian_default.exists() else None)
+
+    if test_dir and test_dir.exists():
+        print(f"[1/4] Loading Indian demographic test set from {test_dir}...")
+        same_pairs, diff_pairs = load_indian_test_dir(test_dir)
+        dataset_label = "Indian demographic test set"
+    else:
+        print("[1/4] Indian test dir not found — falling back to LFW parquet...")
+        print("[2/4] Loading pairs from parquet shards...")
+        same_pairs, diff_pairs = load_lfw_from_parquet()
+        dataset_label = "LFW (Western benchmark — scores ~0.15 lower than Indian set)"
+
     all_pairs = same_pairs + diff_pairs
     print(f"  Using {len(same_pairs)} same-person pairs, {len(diff_pairs)} diff-person pairs")
 
     if not all_pairs:
-        print("[FAIL] No pairs loaded — check LFW download")
+        print("[FAIL] No pairs loaded")
         sys.exit(1)
 
-    # Load models
     print("\n[3/4] Loading models...")
-    print("  Loading TFLite INT8...", end="", flush=True)
-    tflite = TFLiteModel(TFLITE_MODEL)
-    print(" ok")
-    print("  Loading ONNX FP32...", end="", flush=True)
-    onnx = OnnxModel(ONNX_MODEL)
+    print("  Loading ONNX...", end="", flush=True)
+    onnx = OnnxModel(onnx_model_path)
     print(" ok")
 
-    # Evaluate
+    # Probe mode: flat folder, no pairs needed
+    if args.probe_dir:
+        probe_dir = Path(args.probe_dir)
+        if not probe_dir.exists():
+            print(f"[FAIL] probe_dir not found: {probe_dir}")
+            sys.exit(1)
+        probe_flat_dir(probe_dir, onnx, onnx_model_path.name)
+        sys.exit(0)
+
+    tflite = None
+    if not args.skip_tflite:
+        print("  Loading TFLite INT8...", end="", flush=True)
+        tflite = TFLiteModel(tflite_model_path)
+        print(" ok")
+
     print("\n[4/4] Running inference on all pairs...")
-    print("  TFLite INT8...", end="", flush=True)
-    tflite_sims, labels = evaluate(tflite, all_pairs)
-    print(f" done ({len(tflite_sims)} pairs)")
-
-    print("  ONNX FP32...", end="", flush=True)
-    onnx_sims, _ = evaluate(onnx, all_pairs)
+    print("  ONNX...", end="", flush=True)
+    onnx_sims, labels = evaluate(onnx, all_pairs)
     print(f" done ({len(onnx_sims)} pairs)")
 
-    # Reports
-    report("TFLite INT8 — mobilefacenet_indian.tflite", tflite_sims, labels)
-    report("ONNX FP32   — mobilefacenet_base.onnx",    onnx_sims,   labels)
-    drift_report(tflite, onnx, same_pairs[:50])
+    report(f"ONNX - {onnx_model_path.name} [{dataset_label}]", onnx_sims, labels)
 
-    print(f"\n{'='*55}")
-    print("  NOTE: LFW is a general (mostly Western) benchmark.")
-    print("  Indian demographic FAR/FRR tuning is Day 3 task.")
-    print("  These numbers establish the base model baseline.")
-    print(f"{'='*55}\n")
+    if tflite is not None:
+        print("  TFLite INT8...", end="", flush=True)
+        tflite_sims, _ = evaluate(tflite, all_pairs)
+        print(f" done ({len(tflite_sims)} pairs)")
+        report(f"TFLite INT8 - {tflite_model_path.name} [{dataset_label}]", tflite_sims, labels)
+        drift_report(tflite, onnx, same_pairs[:50])
 
 
 if __name__ == "__main__":
