@@ -3,6 +3,8 @@ import {createClient, type SupabaseClient} from '@supabase/supabase-js';
 
 import {supabaseEnv} from '@/config/env';
 
+
+
 const CONFIG_HINT =
   'Add .env at the project root (same folder as package.json), then rebuild: cd android && ./gradlew clean && cd .. && npm run android';
 
@@ -12,7 +14,7 @@ function createSupabaseClient(): SupabaseClient | null {
     return null;
   }
   try {
-    return createClient(url, anonKey, {
+    const client = createClient(url, anonKey, {
       auth: {
         storage: AsyncStorage,
         autoRefreshToken: true,
@@ -20,6 +22,7 @@ function createSupabaseClient(): SupabaseClient | null {
         detectSessionInUrl: false,
       },
     });
+    return client;
   } catch (err) {
     if (__DEV__) {
       console.warn('[supabase] createClient failed:', err);

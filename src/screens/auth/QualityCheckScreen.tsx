@@ -116,8 +116,11 @@ export function QualityCheckScreen({navigation}: Props): React.JSX.Element {
   if (!device) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.accent} size="large" />
-        <Text style={styles.muted}>{t('common.loading')}</Text>
+        <Text style={styles.title}>{t('qualityCheck.title')}</Text>
+        <Text style={styles.message}>{t('camera.noDevice')}</Text>
+        <Pressable style={styles.retryButton} onPress={() => navigation.popToTop()}>
+          <Text style={styles.retryText}>{t('common.cancel')}</Text>
+        </Pressable>
       </View>
     );
   }

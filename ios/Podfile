@@ -17,7 +17,7 @@ prepare_react_native_project!
 #   dependencies: {
 #     ...(process.env.NO_FLIPPER ? { 'react-native-flipper': { platforms: { ios: null } } } : {}),
 # ```
-flipper_config = ENV['NO_FLIPPER'] == "1" ? FlipperConfiguration.disabled : FlipperConfiguration.enabled
+flipper_config = FlipperConfiguration.disabled
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
@@ -30,6 +30,7 @@ target 'PehchaanRNScaffold' do
 
   # TFLite for on-device face recognition + BlazeFace liveness
   pod 'TensorFlowLiteSwift', '~> 2.14.0'
+  pod 'simdjson', :path => '../node_modules/@nozbe/simdjson'
 
   use_react_native!(
     :path => config[:reactNativePath],

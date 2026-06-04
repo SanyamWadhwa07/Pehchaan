@@ -42,16 +42,24 @@ export function RecognitionScreen({navigation}: Props): React.JSX.Element {
 
   const run = useCallback(async () => {
     setLoading(true);
-    const frame =
-      hasPermission && device && isActive
-        ? await captureFrameBase64(cameraRef)
-        : null;
-    const candidates = await buildRecognitionCandidates(siteId);
-    const r = await runRecognition(frame ?? undefined, candidates);
-    setResult(r);
-    setLoading(false);
-    if (r.workerId) {
-      navigation.replace('Liveness', {recognition: r});
+    try {
+      const frame =
+        hasPermission && device && isActive
+          ? await captureFrameBase64(cameraRef)
+          : null;
+      const candidates = await buildRecognitionCandidates(siteId);
+      const r = await runRecognition(frame ?? undefined, candidates);
+      setResult(r);
+      if (r.workerId) {
+        navigation.replace('Liveness', {recognition: r});
+      }
+    } catch (err) {
+      setResult(null);
+      if (__DEV__) {
+        console.warn('[recognition] failed:', err);
+      }
+    } finally {
+      setLoading(false);
     }
   }, [device, hasPermission, isActive, navigation, siteId]);
 

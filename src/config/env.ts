@@ -7,9 +7,7 @@
  * alone is not enough after you change `.env`.
  */
 
-import {loadAppConfig} from '@/config/loadConfig';
-
-const Config = loadAppConfig();
+import Config from 'react-native-config';
 
 export const integrationEnv = {
   apiKey: Config.INTEGRATION_API_KEY ?? '',

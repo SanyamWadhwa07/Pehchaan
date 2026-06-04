@@ -193,7 +193,11 @@ export function LivenessChallengeScreen({
   if (!device) {
     return (
       <View style={styles.centered}>
+        <Text style={styles.title}>{t('liveness.title')}</Text>
         <Text style={styles.muted}>{t('camera.noDevice')}</Text>
+        <Pressable style={styles.overrideBtn} onPress={() => navigation.popToTop()}>
+          <Text style={styles.overrideBtnText}>{t('common.cancel')}</Text>
+        </Pressable>
       </View>
     );
   }
