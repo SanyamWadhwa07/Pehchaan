@@ -88,7 +88,7 @@ Aahil and Maulik own the integration layer. Requirements:
 | ------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
 | Mobile             | React Native 0.73 (bare CLI)                           | Full native module access for TFLite bridge; no Expo managed restrictions                                                                                   | Anoushka       |
 | Dev Backend (Mock) | Supabase (PostgreSQL + Auth + Storage)                 | Dev mock behind the pluggable sync layer. In prod the sync layer targets DataLink 3.0 APIs — config change only. RLS + JWT matches DataLink 3.0 auth model. | Anoushka       |
-| Face Recognition   | MobileFaceNet → TFLite INT8 (Indian Demographic Tuned) | Mobile-optimised, 128-dim embedding; validated on Indian demographic dataset for FAR/FRR accuracy                                                           | Sanyam         |
+| Face Recognition   | MobileFaceNet → TFLite INT8 (Indian Demographic Tuned) | Mobile-optimised, 512-dim embedding; validated on Indian demographic dataset for FAR/FRR accuracy                                                           | Sanyam         |
 | Face Detector      | BlazeFace (TFLite)                                     | ~3MB, runs on-device, sufficient for frontal detection in outdoor conditions                                                                                | Sanyam         |
 | Liveness           | MediaPipe Face Mesh landmarks                          | Blink (EAR ratio) + head-turn (yaw) fully offline; tested on PPE-wearing workers                                                                            | Sanyam         |
 | Local Storage      | WatermelonDB (SQLite)                                  | Offline-first, sync-friendly schema; PostgreSQL-compatible sync adapter                                                                                     | Anoushka       |
@@ -153,7 +153,7 @@ This flow covers how a worker is onboarded into Pehchaan — both centrally (adm
 | 3    | Multi-Angle Capture            | 4 required captures: frontal, left 30°, right 30°, up tilt. UI guides in Hindi or English.                                                                                  | Maulik + Sanyam |
 | 4    | PPE Variant Capture (Optional) | Helmet-on and glasses-on variants — captured only if worker wears PPE on site. Skippable per variant. Improves liveness fallback accuracy but not mandatory for enrollment. | Maulik + Sanyam |
 | 5    | Reference Thumbnail            | Single clean frontal thumbnail saved for supervisor confirmation display.                                                                                                   | Maulik + Sanyam |
-| 6    | Embedding Generation           | MobileFaceNet processes all captures → 128-dim embedding → AES-256-GCM encrypted → stored in PostgreSQL.                                                                    | Sanyam          |
+| 6    | Embedding Generation           | MobileFaceNet processes all captures → 512-dim embedding (float32-LE base64, 2048 bytes) → AES-256-GCM encrypted → stored in PostgreSQL.                                    | Sanyam          |
 | 7    | Site Package Rebuild           | `create-site-package` edge function triggered → new package version built → pushed to supervisor devices on next sync.                                                      | Anoushka        |
 
 
@@ -210,7 +210,7 @@ The base MobileFaceNet model is validated and tuned specifically for Indian demo
 - **Dataset:** MS-Celeb-1M subset filtered for South/South-East Asian faces + synthetic augmentation (skin tone, lighting, dust/haze simulation).
 - **Fine-tuning:** Last 2 layers of MobileFaceNet retrained on demographic-filtered dataset. Full model remains INT8 quantised for TFLite.
 - **Augmentation pipeline:** random brightness (simulate harsh sunlight/shadow), hue shift (skin tone variation), Gaussian noise (dust/sweat), occlusion patches (helmet straps, scarves).
-- **Threshold tuning:** FAR and FRR measured separately on Indian demographic test set. Thresholds (0.92 / 0.80) validated to maintain <1% FAR and <5% FRR on this population.
+- **Threshold tuning:** FAR and FRR measured separately on Indian demographic test set. Thresholds (0.30 / 0.20 / 0.18) validated — 96.53% TAR at 0.54% FAR (HIGH), 98.02% TAR at 2.69% FAR (MEDIUM). See `ml/THRESHOLD_RESULTS.md`.
 - **Outdoor lighting test:** model tested under 4 conditions — direct sunlight, overcast, backlit, shadow — on Indian demographic faces.
 
 ### 4C.3 Deliverables by Day 3
@@ -220,7 +220,7 @@ The base MobileFaceNet model is validated and tuned specifically for Indian demo
 | -------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Tuned TFLite model   | MobileFaceNet INT8, ≤16MB, validated on Indian demographic test set. FAR/FRR table filled with measured values. |
 | Augmentation script  | Python script for dataset augmentation reproducibility. Committed to repo.                                      |
-| Threshold report     | FAR/FRR values at 0.92, 0.85, 0.80 cosine thresholds documented. Outdoor lighting performance table.            |
+| Threshold report     | FAR/FRR values at 0.30, 0.20, 0.18 cosine thresholds documented. Outdoor lighting performance table. See `ml/THRESHOLD_RESULTS.md`. |
 | Benchmark comparison | Side-by-side: base MobileFaceNet vs. Indian-demographic-tuned model on test set. Difference in FRR documented.  |
 
 
@@ -233,8 +233,8 @@ The base MobileFaceNet model is validated and tuned specifically for Indian demo
 | --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------- |
 | 1   | Face Quality Check      | Laplacian blur score, histogram lighting check, landmark occlusion, yaw/pitch ±30°. Fail → animated guide (Hindi/English), retry.                | Aahil + Sanyam    |
 | 2   | Liveness Challenge      | Random: blink (EAR) or head-turn (yaw). PPE fallback: occluded eyes → force head-turn. Timeout 5s. Max 3 attempts. Prompts in Hindi/English.     | Sanyam + Aahil    |
-| 3   | Face Recognition        | MobileFaceNet TFLite (Indian demographic tuned) → 128-dim embedding → cosine similarity. Returns confidence score.                               | Sanyam            |
-| 4   | Adaptive Auth           | >0.92: single challenge done. 0.80–0.92: second challenge. <0.80: third challenge + supervisor notification flag.                                | Sanyam + Aahil    |
+| 3   | Face Recognition        | MobileFaceNet TFLite (Indian demographic tuned) → 512-dim embedding → cosine similarity. Returns confidence score.                               | Sanyam            |
+| 4   | Adaptive Auth           | >0.30 (HIGH): single challenge done. 0.20–0.30 (MEDIUM): second challenge. <0.20 (MIN): third challenge + supervisor flag. See `src/constants/auth.ts`. | Sanyam + Aahil    |
 | 5   | Supervisor Confirmation | Thumbnail + worker name + ID on supervisor device (Hindi/English). Supervisor taps Confirm/Reject. Confirmation timestamp + supervisorID logged. | Maulik + Anoushka |
 | 6   | Attendance Write        | Full record written to WatermelonDB queue. Status: Pending. `integration_push_status`: queued.                                                   | Anoushka + Sanyam |
 | 7   | Sync                    | On network: batch upload → PostgreSQL via Supabase → server ACK → status: Verified → purge. Integration-ready payload flagged.                   | Anoushka          |
@@ -396,9 +396,10 @@ All four members work in parallel from Day 1. Integration checkpoints at EOD Day
 | Combined model footprint                     | < 20MB          | ___MB    | Redmi Note       |
 | Peak RAM during auth session                 | < 250MB         | ___MB    | Redmi Note       |
 | Battery drain (30-min session)               | < 5% additional | ___%     | Redmi Note       |
-| FAR — Indian demographic test set (@ 0.92)   | < 1%            | ___%     | Measured offline |
-| FRR — Indian demographic test set (@ 0.92)   | < 5%            | ___%     | Measured offline |
-| FRR — Indian demographic test set (@ 0.80)   | < 10%           | ___%     | Measured offline |
+| FAR — Indian demographic test set (@ 0.30)   | < 1%            | 0.54%    | Measured offline |
+| TAR — Indian demographic test set (@ 0.30)   | > 95%           | 96.53%   | Measured offline |
+| FAR — Indian demographic test set (@ 0.20)   | < 5%            | 2.69%    | Measured offline |
+| TAR — Indian demographic test set (@ 0.20)   | > 98%           | 98.02%   | Measured offline |
 | i18n language switch latency                 | < 100ms         | ___ms    | Redmi Note       |
 
 

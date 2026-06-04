@@ -12,6 +12,9 @@ import TensorFlowLite
 @objc(FaceRecognitionModule)
 class FaceRecognitionModule: NSObject {
 
+    // JS sees NativeModules.FaceRecognition (matches Android MODULE_NAME)
+    @objc override static func moduleName() -> String! { return "FaceRecognition" }
+
     // MARK: - Constants
 
     private let MFN_SIZE  = 112
@@ -196,7 +199,79 @@ class FaceRecognitionModule: NSObject {
         }
     }
 
-    // MARK: - 3. Liveness Detection
+    // MARK: - 3. Generate Embedding
+
+    @objc(generateEmbedding:resolver:rejecter:)
+    func generateEmbedding(
+        _ frameBase64: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject:  @escaping RCTPromiseRejectBlock
+    ) {
+        guard
+            let data = Data(base64Encoded: frameBase64),
+            let src  = UIImage(data: data)
+        else { reject("EMBED_ERROR", "Cannot decode frame", nil); return }
+
+        guard let det = runBlazeFace(src) else {
+            resolve(["embeddingBase64": NSNull(), "qualityScore": 0.0, "faceFound": false])
+            return
+        }
+
+        guard
+            let cropped = cropImage(src, box: det.box, pad: 0.15),
+            let mfnBmp  = cropped.resized(to: CGSize(width: MFN_SIZE, height: MFN_SIZE)),
+            let pixels  = mfnBmp.rgbPixelData(),
+            let interp  = mfnInterp
+        else { reject("EMBED_ERROR", "Image processing failed", nil); return }
+
+        do {
+            let inputTensor = try interp.input(at: 0)
+            let scale     = Float(inputTensor.quantizationParameters?.scale    ?? 0.00784)
+            let zeroPoint = inputTensor.quantizationParameters?.zeroPoint ?? -1
+
+            var inputBytes = [Int8](repeating: 0, count: MFN_SIZE * MFN_SIZE * 3)
+            for i in 0 ..< MFN_SIZE * MFN_SIZE {
+                let r = Float(pixels[i * 3 + 0]) / 127.5 - 1.0
+                let g = Float(pixels[i * 3 + 1]) / 127.5 - 1.0
+                let b = Float(pixels[i * 3 + 2]) / 127.5 - 1.0
+                inputBytes[i * 3 + 0] = quantize(r, scale: scale, zp: zeroPoint)
+                inputBytes[i * 3 + 1] = quantize(g, scale: scale, zp: zeroPoint)
+                inputBytes[i * 3 + 2] = quantize(b, scale: scale, zp: zeroPoint)
+            }
+
+            try interp.copy(Data(bytes: inputBytes, count: inputBytes.count), toInputAt: 0)
+            try interp.invoke()
+            let outTensor = try interp.output(at: 0)
+            var embedding = outTensor.data.withUnsafeBytes {
+                Array(UnsafeBufferPointer<Float>(
+                    start: $0.baseAddress!.assumingMemoryBound(to: Float.self),
+                    count: EMBED_DIM))
+            }
+
+            // L2-normalise so cosine similarity = dot product
+            let norm = l2norm(embedding)
+            embedding = embedding.map { $0 / norm }
+
+            // Encode as little-endian float32 bytes → base64
+            var embData = Data(count: EMBED_DIM * 4)
+            embData.withUnsafeMutableBytes { ptr in
+                let floatPtr = ptr.baseAddress!.assumingMemoryBound(to: Float.self)
+                for (i, v) in embedding.enumerated() { floatPtr[i] = v }
+            }
+            let embeddingBase64 = embData.base64EncodedString()
+            let qualityScore = Double(min(1.0, Float(det.box.width * det.box.height)))
+
+            resolve([
+                "embeddingBase64": embeddingBase64,
+                "qualityScore":    qualityScore,
+                "faceFound":       true,
+            ])
+        } catch {
+            reject("EMBED_ERROR", error.localizedDescription, error)
+        }
+    }
+
+    // MARK: - 4. Liveness Detection
 
     @objc(checkLiveness:challenge:resolver:rejecter:)
     func checkLiveness(

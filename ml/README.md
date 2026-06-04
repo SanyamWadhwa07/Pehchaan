@@ -146,14 +146,40 @@ MS-Celeb-1M is unavailable (taken down 2019). Use these sources:
 
 ---
 
-## Thresholds
+## Thresholds (calibrated Day 3)
 
-| Threshold | FAR Target | FRR Target |
-|---|---|---|
-| 0.92 (high confidence → 1 challenge) | < 1% | < 5% |
-| 0.85 (medium → 2 challenges) | < 2% | < 8% |
-| 0.80 (low → 3 challenges + flag) | < 5% | < 10% |
+| Name | Value | TAR | FAR | Auth tier |
+|---|---|---|---|---|
+| HIGH | 0.30 | 96.53% | 0.54% | 1 challenge |
+| MEDIUM | 0.20 | 98.02% | 2.69% | 2 challenges |
+| MIN | 0.18 | — | — | 3 challenges + flag |
 
-Final measured values go in `Pehchaan_Implementation_Plan_v2.md` section 9.
+Constants in `src/constants/auth.ts`. Full calibration data in `ml/THRESHOLD_RESULTS.md`.
 
-> All benchmark values must come from physical hardware runs on Day 4. Estimated values are disqualifying.
+> All device benchmark values must come from physical hardware runs. Estimated values are disqualifying.
+
+---
+
+## Deploying models to device (S4)
+
+Models are gitignored. After running the pipeline, copy to app assets:
+
+```bash
+# Android — copy once, then rebuild
+cp ml/models/mobilefacenet_indian.tflite android/app/src/main/assets/
+cp ml/models/blazeface.tflite             android/app/src/main/assets/
+
+# iOS — Maulik adds both .tflite files to Xcode → Copy Bundle Resources target
+# (drag & drop in Xcode; do NOT copy to android/app/src/main/assets for iOS)
+
+# Verify sizes (combined must be ≤ 20 MB)
+ls -lh android/app/src/main/assets/*.tflite
+```
+
+If models don't exist yet, generate them:
+
+```bash
+cd ml/
+venv/Scripts/python.exe scripts/download_models.py   # get base ONNX
+venv/Scripts/python.exe scripts/quantise.py          # → ml/models/mobilefacenet_indian.tflite
+```

@@ -9,6 +9,12 @@ RCT_EXTERN_METHOD(
 )
 
 RCT_EXTERN_METHOD(
+  generateEmbedding:(NSString *)frameBase64
+  resolver:(RCTPromiseResolveBlock)resolve
+  rejecter:(RCTPromiseRejectBlock)reject
+)
+
+RCT_EXTERN_METHOD(
   runInference:(NSString *)frameBase64
   candidatesJson:(NSString *)candidatesJson
   threshold:(double)threshold

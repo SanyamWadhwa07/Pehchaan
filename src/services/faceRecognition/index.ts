@@ -22,6 +22,29 @@ const {FaceRecognition} = NativeModules;
 /** True when the native TFLite bridge is available (Android + iOS production builds). */
 export const BRIDGE_AVAILABLE = !!FaceRecognition;
 
+// ─── Embedding Generation (enrollment + field registration) ──────────────────
+
+/**
+ * Detect face, run MobileFaceNet, L2-normalise, and return the 512-d embedding
+ * as base64-encoded float32-LE bytes (2048 bytes raw, ~2732 chars base64).
+ *
+ * Call this during enrollment and field registration to produce the embedding
+ * stored in WatermelonDB and synced to Supabase via register-worker.
+ * NOT used during auth — auth uses runRecognition which matches inside the bridge.
+ */
+export async function generateEmbedding(frameBase64: string): Promise<{
+  embeddingBase64: string | null;
+  qualityScore: number;
+  faceFound: boolean;
+}> {
+  if (!BRIDGE_AVAILABLE) {
+    if (__DEV__) console.log('[FaceRecognition] generateEmbedding: bridge unavailable — stub');
+    return { embeddingBase64: null, qualityScore: 0, faceFound: false };
+  }
+  if (__DEV__) console.log('[FaceRecognition] generateEmbedding: native bridge');
+  return FaceRecognition.generateEmbedding(frameBase64);
+}
+
 // ─── Face Quality Check ───────────────────────────────────────────────────────
 
 /**
