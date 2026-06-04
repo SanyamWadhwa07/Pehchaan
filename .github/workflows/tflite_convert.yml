@@ -30,7 +30,7 @@ jobs:
           uv venv venv --python 3.12
           uv pip install --python venv/bin/python -r requirements.txt
           uv pip install --python venv/bin/python \
-            tf_keras onnx-graphsurgeon psutil ai-edge-litert sng4onnx \
+            "numpy<2.0" tf_keras onnx-graphsurgeon psutil ai-edge-litert sng4onnx \
             onnx2tf
 
       - name: Convert FP32 ONNX -> TFLite INT8
