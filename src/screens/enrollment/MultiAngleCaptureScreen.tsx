@@ -1,38 +1,38 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { Camera, useCameraDevice } from 'react-native-vision-camera';
-import { useTranslation } from 'react-i18next';
-import type { StackScreenProps } from '@react-navigation/stack';
+import React, {useCallback, useEffect, useState} from 'react';
+import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {Camera, useCameraDevice} from 'react-native-vision-camera';
+import {useTranslation} from 'react-i18next';
+import type {StackScreenProps} from '@react-navigation/stack';
 
-import { Button } from '@/components/Button';
-import { StepIndicator } from '@/components/StepIndicator';
-import { useCameraPermission } from '@/hooks/useCameraPermission';
-import { useCameraSession } from '@/hooks/useCameraSession';
-import { qualityCheckTranslationKey } from '@/lib/qualityI18n';
-import type { EnrollmentStackParamList } from '@/navigation/EnrollmentStack';
-import { AngleGuideCard } from '@/screens/enrollment/components/AngleGuideCard';
-import { useEnrollment } from '@/screens/enrollment/EnrollmentContext';
+import {Button} from '@/components/Button';
+import {StepIndicator} from '@/components/StepIndicator';
+import {useCameraPermission} from '@/hooks/useCameraPermission';
+import {useCameraSession} from '@/hooks/useCameraSession';
+import {qualityCheckTranslationKey} from '@/lib/qualityI18n';
+import type {EnrollmentStackParamList} from '@/navigation/EnrollmentStack';
+import {AngleGuideCard} from '@/screens/enrollment/components/AngleGuideCard';
+import {useEnrollment} from '@/screens/enrollment/EnrollmentContext';
 import {
   CAPTURE_SEQUENCE,
   OPTIONAL_CAPTURE_ANGLES,
 } from '@/screens/enrollment/types';
-import { FaceOverlay } from '@/screens/auth/components/FaceOverlay';
-import { checkFaceQuality, STUB_FACE_BOX } from '@/services/faceRecognition';
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
-import type { CaptureAngle, QualityCheck } from '@/types';
+import {FaceOverlay} from '@/screens/auth/components/FaceOverlay';
+import {checkFaceQuality, STUB_FACE_BOX} from '@/services/faceRecognition';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
+import type {QualityCheck} from '@/types';
 
 type Props = StackScreenProps<EnrollmentStackParamList, 'MultiAngleCapture'>;
 
 export function MultiAngleCaptureScreen({
   navigation,
 }: Props): React.JSX.Element {
-  const { t } = useTranslation();
-  const { state, updateState } = useEnrollment();
+  const {t} = useTranslation();
+  const {state, updateState} = useEnrollment();
   const device = useCameraDevice('front');
-  const { hasPermission, isRequesting } = useCameraPermission();
-  const { isActive, onCameraError } = useCameraSession();
+  const {hasPermission, isRequesting} = useCameraPermission();
+  const {isActive, onCameraError} = useCameraSession();
   const [forceInactive, setForceInactive] = useState(false);
   const cameraActive = isActive && !forceInactive;
 
@@ -50,12 +50,7 @@ export function MultiAngleCaptureScreen({
     if (hasPermission && cameraActive) {
       void pollQuality();
     }
-  }, [
-    hasPermission,
-    cameraActive,
-    angleIndex,
-    pollQuality,
-  ]);
+  }, [hasPermission, cameraActive, angleIndex, pollQuality]);
 
   useEffect(() => {
     const beforeRemoveUnsub = navigation.addListener('beforeRemove', () => {
@@ -73,7 +68,7 @@ export function MultiAngleCaptureScreen({
   const saveCapture = () => {
     const placeholder = `data:image/jpeg;base64,enrollment-${currentAngle}-${Date.now()}`;
     updateState({
-      captures: { ...state.captures, [currentAngle]: placeholder },
+      captures: {...state.captures, [currentAngle]: placeholder},
     });
     goNext();
   };
@@ -83,7 +78,7 @@ export function MultiAngleCaptureScreen({
       navigation.navigate('ReferenceThumbnail');
       return;
     }
-    setAngleIndex((i) => i + 1);
+    setAngleIndex(i => i + 1);
     setQuality(null);
   };
 
@@ -120,8 +115,8 @@ export function MultiAngleCaptureScreen({
     quality?.passed === true
       ? 'qualityCheck.pass'
       : quality?.failReason
-        ? qualityCheckTranslationKey(quality.failReason)
-        : null;
+      ? qualityCheckTranslationKey(quality.failReason)
+      : null;
 
   return (
     <View style={styles.root}>

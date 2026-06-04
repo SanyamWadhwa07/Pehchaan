@@ -146,3 +146,57 @@ Schema + RLS in `supabase/migrations/001_initial_schema.sql`. Anoushka owns migr
 
 See `Pehchaan_Implementation_Plan_v2.md` section 11 for the full checklist.
 APK/IPA due before 05 June 2026.
+
+---
+
+## Sanyam's ML Goals — Hackathon Scoring Map
+
+Hackathon title: *"Develop a mobile based secure offline facial recognition and liveness detection system for remote locations"*
+Submission closure: **05 June 2026**
+
+### Hard Constraints (must pass or disqualified)
+
+| Constraint | Target | Sanyam's Approach |
+|---|---|---|
+| Model footprint | ≤ 20 MB (smaller = better) | MobileFaceNet TFLite INT8 (~5 MB) + BlazeFace TFLite (~1 MB) = ~6 MB total |
+| Inference speed | < 1 second end-to-end on mid-range device | BlazeFace detect + MTCNN align + MobileFaceNet embed pipeline |
+| Accuracy | > 95% facial recognition on Indian demographics | ArcFace fine-tune on 231 Indian identities + outdoor augmentation |
+| Offline liveness | Blink / head-turn anti-spoofing | EAR (blink) + yaw angle (head-turn) via MediaPipe Face Mesh |
+| Open-source only | No paid/proprietary licences | PyTorch, ONNX, TFLite, MediaPipe — all Apache/MIT |
+| React Native | Android + iOS | Kotlin TFLite bridge + Swift TFLite bridge in `src/native/FaceRecognition/` |
+| Min device | Android 8.0+ / iOS 12+ / 3 GB RAM | TFLite INT8 runs on CPU — no GPU required |
+
+### Scoring Breakdown (Sanyam's contribution to each criterion)
+
+**Innovation — 30 marks**
+- INT8 quantisation (onnxruntime static PTQ) — demonstrates edge AI compression
+- ArcFace fine-tune on Indian demographic dataset — not a generic off-the-shelf model
+- EAR + yaw offline liveness — no cloud anti-spoofing API
+- Augmentation pipeline: helmet/scarf occlusion, harsh sunlight, shadow, blur
+
+**Feasibility — 30 marks**
+- < 1 sec inference on CPU-only mid-range device (must benchmark and record)
+- React Native TFLite bridge exposing `runInference(base64Image) → {embedding, confidence}` — directly pluggable into DataLink 3.0
+- BlazeFace detector avoids any native camera dependency
+
+**Scalability & Sustainability — 20 marks**
+- Adaptive threshold (0.92 / 0.80 / <0.80) handles varying confidence gracefully
+- Augmentation covers outdoor lighting, dust, helmets, scarves
+- Embedding-based architecture scales to any number of enrolled workers without retraining
+
+**Presentation & Documentation — 20 marks**
+- `ml/PROGRESS_SANYAM.md` — benchmark table with measured FAR/FRR, model size, RAM, inference time
+- Architecture diagram (pipeline in CLAUDE.md System Overview)
+- Integration guide for RN bridge
+
+### Day 4 Must-Ship Checklist (Sanyam)
+
+- [ ] `mobilefacenet_indian_ft.onnx` — fine-tuned model exported
+- [ ] `mobilefacenet_indian_int8.onnx` — INT8 quantised
+- [ ] `mobilefacenet_indian.tflite` — TFLite from CI
+- [ ] `src/native/FaceRecognition/FaceRecognitionModule.kt` — Android bridge
+- [ ] `src/native/FaceRecognition/FaceRecognitionModule.swift` — iOS bridge
+- [ ] Liveness: EAR blink + yaw head-turn implemented
+- [ ] Benchmark table filled: FAR, FRR, model size MB, inference ms, peak RAM MB
+- [ ] Verify model size ≤ 20 MB (target ≤ 10 MB)
+- [ ] Verify end-to-end inference < 1000 ms on CPU

@@ -1,5 +1,5 @@
-import type { AttendanceRecordRow } from '@/lib/db/rows';
-import type { IntegrationPushStatus, SyncStatus } from '@/types';
+import type {AttendanceRecordRow} from '@/lib/db/rows';
+import type {IntegrationPushStatus, SyncStatus} from '@/types';
 
 /** Postgres `sync_status_enum` and WMDB `outbox_sync_status` share the same string values. */
 export const SYNC_STATUS_VALUES: readonly SyncStatus[] = [
@@ -30,7 +30,12 @@ export function integrationPushFromRemote(
   value: string | null | undefined,
 ): IntegrationPushStatus {
   const v = value ?? 'queued';
-  if (v === 'queued' || v === 'pushed' || v === 'failed' || v === 'not_applicable') {
+  if (
+    v === 'queued' ||
+    v === 'pushed' ||
+    v === 'failed' ||
+    v === 'not_applicable'
+  ) {
     return v;
   }
   return 'queued';

@@ -1,17 +1,17 @@
-import { Q } from '@nozbe/watermelondb';
-import type { Database } from '@nozbe/watermelondb';
+import {Q} from '@nozbe/watermelondb';
+import type {Database} from '@nozbe/watermelondb';
 
-import type { Worker } from '@/db/models/Worker';
-import { database } from '@/db';
-import { sitePackageEnv } from '@/config/env';
+import type {Worker} from '@/db/models/Worker';
+import {database} from '@/db';
+import {sitePackageEnv} from '@/config/env';
 import {
   decodeSitePackageMasterKey,
   decryptSitePackageBuffer,
   decryptSitePackageV2Payload,
   type SitePackageKeyMaterial,
 } from '@/services/sitePackage/decryptSitePackage';
-import { downloadSitePackageObject } from '@/services/sitePackage/sitePackageStorage';
-import { parseSitePackageFromZipBuffer } from '@/services/sitePackage/unpackSitePackage';
+import {downloadSitePackageObject} from '@/services/sitePackage/sitePackageStorage';
+import {parseSitePackageFromZipBuffer} from '@/services/sitePackage/unpackSitePackage';
 
 export type HydrateLocalWorkersOptions = {
   siteId: string;
@@ -42,7 +42,7 @@ function enrolledAtMs(iso: string): number {
 export async function hydrateLocalWorkersFromSitePackage(
   options: HydrateLocalWorkersOptions,
   db: Database = database,
-): Promise<{ workerCount: number; packageKind: 'v1_plain' | 'v2_encrypted' }> {
+): Promise<{workerCount: number; packageKind: 'v1_plain' | 'v2_encrypted'}> {
   const fileName = options.fileName ?? 'site-package.zip';
   const raw = await downloadSitePackageObject(options.siteId, fileName);
   const plain = await decryptSitePackageBuffer(raw);
@@ -51,16 +51,20 @@ export async function hydrateLocalWorkersFromSitePackage(
   if (parsed.kind === 'v1_plain') {
     const manifest = parsed.manifest;
     if (manifest.site_id !== options.siteId) {
-      throw new Error(`site package site_id mismatch (manifest=${manifest.site_id})`);
+      throw new Error(
+        `site package site_id mismatch (manifest=${manifest.site_id})`,
+      );
     }
     if (manifest.cipher === 'aes-256-gcm') {
       throw new Error('v1 manifest cannot declare aes-256-gcm');
     }
 
     const workers = db.collections.get<Worker>('workers');
-    const existing = await workers.query(Q.where('site_id', options.siteId)).fetch();
-    const destroys = existing.map((w) => w.prepareDestroyPermanently());
-    const creates = manifest.workers.map((w) =>
+    const existing = await workers
+      .query(Q.where('site_id', options.siteId))
+      .fetch();
+    const destroys = existing.map(w => w.prepareDestroyPermanently());
+    const creates = manifest.workers.map(w =>
       workers.prepareCreateFromDirtyRaw({
         id: w.id,
         name: w.name,
@@ -77,12 +81,14 @@ export async function hydrateLocalWorkersFromSitePackage(
     await db.write(async () => {
       await db.batch(...destroys, ...creates);
     });
-    return { workerCount: manifest.workers.length, packageKind: 'v1_plain' };
+    return {workerCount: manifest.workers.length, packageKind: 'v1_plain'};
   }
 
-  const { outer, files } = parsed;
+  const {outer, files} = parsed;
   if (outer.site_id !== options.siteId) {
-    throw new Error(`site package site_id mismatch (manifest=${outer.site_id})`);
+    throw new Error(
+      `site package site_id mismatch (manifest=${outer.site_id})`,
+    );
   }
 
   const payload = files['payload.bin'];
@@ -104,13 +110,17 @@ export async function hydrateLocalWorkersFromSitePackage(
       key32: decodeSitePackageMasterKey(options.deviceKeyBase64),
     };
   } else {
-    const masterB64 = options.masterKeyBase64?.trim() || sitePackageEnv.masterKeyBase64.trim();
+    const masterB64 =
+      options.masterKeyBase64?.trim() || sitePackageEnv.masterKeyBase64.trim();
     if (!masterB64) {
       throw new Error(
         'v2 site package requires SITE_PACKAGE_MASTER_KEY (or masterKeyBase64 option)',
       );
     }
-    keyMaterial = { kind: 'site_master', key32: decodeSitePackageMasterKey(masterB64) };
+    keyMaterial = {
+      kind: 'site_master',
+      key32: decodeSitePackageMasterKey(masterB64),
+    };
   }
 
   const inner = decryptSitePackageV2Payload(outer, payload, keyMaterial);
@@ -119,13 +129,16 @@ export async function hydrateLocalWorkersFromSitePackage(
   }
 
   const workers = db.collections.get<Worker>('workers');
-  const existing = await workers.query(Q.where('site_id', options.siteId)).fetch();
-  const destroys = existing.map((w) => w.prepareDestroyPermanently());
+  const existing = await workers
+    .query(Q.where('site_id', options.siteId))
+    .fetch();
+  const destroys = existing.map(w => w.prepareDestroyPermanently());
 
-  const creates = inner.workers.map((w) => {
+  const creates = inner.workers.map(w => {
     const lang = w.language_preference === 'hi' ? 'hi' : 'en';
     const thumb =
-      w.reference_thumbnail_base64 != null && w.reference_thumbnail_base64.length > 0
+      w.reference_thumbnail_base64 != null &&
+      w.reference_thumbnail_base64.length > 0
         ? `data:image/jpeg;base64,${w.reference_thumbnail_base64}`
         : w.reference_thumbnail_url;
     return workers.prepareCreateFromDirtyRaw({
@@ -146,5 +159,5 @@ export async function hydrateLocalWorkersFromSitePackage(
     await db.batch(...destroys, ...creates);
   });
 
-  return { workerCount: inner.workers.length, packageKind: 'v2_encrypted' };
+  return {workerCount: inner.workers.length, packageKind: 'v2_encrypted'};
 }

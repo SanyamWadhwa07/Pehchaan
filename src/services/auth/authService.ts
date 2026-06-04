@@ -1,15 +1,12 @@
-import { supabase } from '@/lib/supabase';
+import {requireSupabase} from '@/lib/supabase';
 
-export async function login(
-  email: string,
-  password: string
-) {
-  return supabase.auth.signInWithPassword({
+export async function login(email: string, password: string) {
+  return requireSupabase().auth.signInWithPassword({
     email,
     password,
   });
 }
 
 export async function logout() {
-  return supabase.auth.signOut();
+  return requireSupabase().auth.signOut();
 }

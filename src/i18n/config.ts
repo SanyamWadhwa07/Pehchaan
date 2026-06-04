@@ -7,6 +7,6 @@ export type AppLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 export const DEFAULT_LANGUAGE: AppLanguage = 'en';
 
 export const i18nResources = {
-  en: { translation: en },
-  hi: { translation: hi },
+  en: {translation: en},
+  hi: {translation: hi},
 } as const;

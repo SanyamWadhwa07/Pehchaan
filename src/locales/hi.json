@@ -36,7 +36,16 @@
     "timeout": "समय समाप्त। कृपया पुनः प्रयास करें।",
     "failed": "जीवंतता जाँच विफल।",
     "attempt": "प्रयास {{count}} / 3",
+    "step": "चरण {{current}} / {{total}}",
+    "secondsLeft": "{{seconds}} सेकंड शेष",
+    "continueAnyway": "जारी रखें — सुपरवाइज़र सत्यापित करेगा",
+    "lowConfidenceFlag": "कम मिलान विश्वास — सुपरवाइज़र को सावधानी से जाँच करनी होगी।",
     "supervisorOverride": "कृपया अपने सुपरवाइज़र से संपर्क करें।"
+  },
+  "recognition": {
+    "running": "चेहरा मिलान हो रहा है...",
+    "failed": "श्रमिक पहचाना नहीं गया। स्थिति और रोशनी समायोजित करें।",
+    "backToQuality": "गुणवत्ता जाँच पर वापस"
   },
   "authResult": {
     "success": "प्रमाणित",
@@ -44,23 +53,31 @@
     "workerId": "आईडी: {{id}}",
     "waitingConfirmation": "सुपरवाइज़र की पुष्टि की प्रतीक्षा में...",
     "rejected": "सुपरवाइज़र ने अस्वीकार किया।",
-    "failed": "प्रमाणीकरण विफल। श्रमिक पहचाना नहीं गया।"
+    "failed": "प्रमाणीकरण विफल। श्रमिक पहचाना नहीं गया।",
+    "done": "पूर्ण"
   },
   "supervisorConfirmation": {
     "title": "श्रमिक की पहचान की पुष्टि करें",
     "instruction": "सुनिश्चित करें कि सामने खड़ा व्यक्ति फ़ोटो से मेल खाता है।",
     "confirm": "उपस्थिति की पुष्टि करें",
-    "reject": "अस्वीकार करें"
+    "reject": "अस्वीकार करें",
+    "lowConfidenceWarning": "कम विश्वास मिलान — पहचान सावधानी से जाँचें।"
   },
   "registration": {
     "title": "नए श्रमिक का पंजीकरण",
+    "devEntry": "फ़ील्ड पंजीकरण (डेव)",
+    "stepDetails": "श्रमिक विवरण",
+    "stepConfirm": "पुष्टि और कतार",
     "name": "पूरा नाम",
     "role": "पद / काम",
     "idNumber": "आईडी नंबर",
     "contactNumber": "संपर्क नंबर",
     "languagePreference": "पसंदीदा भाषा",
+    "validationRequired": "यह फ़ील्ड आवश्यक है।",
+    "validationIdRequired": "आईडी नंबर आवश्यक है।",
     "capturePhoto": "फ़ोटो लें",
     "captureInstruction": "सीधे कैमरे की तरफ देखें।",
+    "acceptCapture": "फ़ोटो स्वीकार करें",
     "submitting": "पंजीकरण जमा हो रहा है...",
     "successQueued": "पंजीकरण कतार में है। कनेक्शन होने पर सिंक होगा।",
     "successSubmitted": "श्रमिक का पंजीकरण सफल।"
@@ -71,7 +88,12 @@
     "syncStatus": "सिंक स्थिति",
     "pendingSync": "{{count}} रिकॉर्ड सिंक होने बाकी",
     "lastSync": "अंतिम सिंक: {{time}}",
-    "registerWorker": "नए श्रमिक का पंजीकरण"
+    "registerWorker": "नए श्रमिक का पंजीकरण",
+    "pendingAuth": "श्रमिक पुष्टि की प्रतीक्षा में",
+    "reviewNow": "अभी जाँचें",
+    "shiftLabel": "शिफ्ट",
+    "shiftMorning": "सुबह",
+    "siteLabel": "साइट"
   },
   "login": {
     "title": "साइन इन",
@@ -79,7 +101,8 @@
     "email": "ईमेल",
     "password": "पासवर्ड",
     "signIn": "साइन इन करें",
-    "validationRequired": "ईमेल और पासवर्ड दर्ज करें।"
+    "validationRequired": "ईमेल और पासवर्ड दर्ज करें।",
+    "configMissing": "Supabase लोड नहीं हुआ। प्रोजेक्ट रूट में .env संपादित करके ऐप को पुनः बिल्ड करें।"
   },
   "settings": {
     "title": "सेटिंग्स",

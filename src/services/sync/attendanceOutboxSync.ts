@@ -18,14 +18,14 @@
  *
  * @module attendanceOutboxSync
  */
-import { Q } from '@nozbe/watermelondb';
-import type { Database } from '@nozbe/watermelondb';
+import {Q} from '@nozbe/watermelondb';
+import type {Database} from '@nozbe/watermelondb';
 import Config from 'react-native-config';
 
-import type { AttendanceRecordModel } from '@/db/models/AttendanceRecordModel';
-import { insertAttendanceRecordsBatch } from '@/repositories/attendanceRepository';
-import type { AttendanceRecordRow } from '@/lib/db/rows';
-import { randomUuidV4 } from '@/lib/randomUuid';
+import type {AttendanceRecordModel} from '@/db/models/AttendanceRecordModel';
+import {insertAttendanceRecordsBatch} from '@/repositories/attendanceRepository';
+import type {AttendanceRecordRow} from '@/lib/db/rows';
+import {randomUuidV4} from '@/lib/randomUuid';
 
 import {
   attendancePurgePolicyFromEnv,
@@ -51,23 +51,39 @@ const MAX_BACKOFF_MS = 60 * 60 * 1000;
  *   attempt 4 → 4 min
  *   attempt 5 → dead-lettered
  */
-function isBackoffExpired(retryCount: number, lastErrorAt: number | null): boolean {
-  if (retryCount <= 0) return true;
-  if (retryCount >= ATTENDANCE_MAX_RETRIES) return false;
-  if (lastErrorAt == null) return true;
-  const backoffMs = Math.min(BASE_BACKOFF_MS * Math.pow(2, retryCount - 1), MAX_BACKOFF_MS);
+function isBackoffExpired(
+  retryCount: number,
+  lastErrorAt: number | null,
+): boolean {
+  if (retryCount <= 0) {
+    return true;
+  }
+  if (retryCount >= ATTENDANCE_MAX_RETRIES) {
+    return false;
+  }
+  if (lastErrorAt == null) {
+    return true;
+  }
+  const backoffMs = Math.min(
+    BASE_BACKOFF_MS * Math.pow(2, retryCount - 1),
+    MAX_BACKOFF_MS,
+  );
   return Date.now() - lastErrorAt >= backoffMs;
 }
 
 function isEligibleForUpload(m: AttendanceRecordModel): boolean {
-  if (m.outboxSyncStatus === 'pending') return true;
+  if (m.outboxSyncStatus === 'pending') {
+    return true;
+  }
   if (m.outboxSyncStatus === 'failed') {
     return isBackoffExpired(m.retryCount, m.lastErrorAt);
   }
   return false;
 }
 
-function rowFromLocal(m: AttendanceRecordModel): Omit<AttendanceRecordRow, 'id'> {
+function rowFromLocal(
+  m: AttendanceRecordModel,
+): Omit<AttendanceRecordRow, 'id'> {
   const sup = m.supervisorId?.trim();
   return {
     worker_id: m.workerId,
@@ -87,7 +103,8 @@ function rowFromLocal(m: AttendanceRecordModel): Omit<AttendanceRecordRow, 'id'>
     synced_at: null,
     purged_at: null,
     fail_reason: null,
-    integration_push_status: m.integrationPushStatus as AttendanceRecordRow['integration_push_status'],
+    integration_push_status:
+      m.integrationPushStatus as AttendanceRecordRow['integration_push_status'],
     client_event_id: m.clientEventId?.trim() ? m.clientEventId.trim() : null,
   };
 }
@@ -124,16 +141,19 @@ export async function pushPendingAttendanceOutbox(
   let deadLettered = 0;
   const purgePolicy = attendancePurgePolicyFromEnv(Config.ATTENDANCE_PURGE_AFTER_INTEGRATION);
 
-  const collection = database.collections.get<AttendanceRecordModel>('attendance_records');
+  const collection =
+    database.collections.get<AttendanceRecordModel>('attendance_records');
 
   // Rows stuck in 'uploading' mean the previous run was interrupted (kill, crash, etc.).
   // Reset them to 'pending' so they are retried. Re-send is safe: each row carries a
   // stable `client_event_id` (assigned before first upload) so Postgres maps retries to one row.
-  const stuck = await collection.query(Q.where('outbox_sync_status', 'uploading')).fetch();
+  const stuck = await collection
+    .query(Q.where('outbox_sync_status', 'uploading'))
+    .fetch();
   if (stuck.length > 0) {
     await database.write(async () => {
       for (const m of stuck) {
-        await m.update((rec) => {
+        await m.update(rec => {
           rec.outboxSyncStatus = 'pending';
         });
       }
@@ -150,7 +170,10 @@ export async function pushPendingAttendanceOutbox(
   const toDeadLetter: AttendanceRecordModel[] = [];
 
   for (const m of candidates) {
-    if (m.outboxSyncStatus === 'failed' && m.retryCount >= ATTENDANCE_MAX_RETRIES) {
+    if (
+      m.outboxSyncStatus === 'failed' &&
+      m.retryCount >= ATTENDANCE_MAX_RETRIES
+    ) {
       toDeadLetter.push(m);
     } else if (isEligibleForUpload(m)) {
       eligible.push(m);
@@ -162,7 +185,7 @@ export async function pushPendingAttendanceOutbox(
     deadLettered = toDeadLetter.length;
     await database.write(async () => {
       for (const m of toDeadLetter) {
-        await m.update((rec) => {
+        await m.update(rec => {
           rec.failReason = `dead_lettered after ${m.retryCount} attempts`;
         });
       }
@@ -171,14 +194,14 @@ export async function pushPendingAttendanceOutbox(
 
   const slice = eligible.slice(0, batchSize);
   if (slice.length === 0) {
-    return { uploaded: 0, errors, deadLettered };
+    return {uploaded: 0, errors, deadLettered};
   }
 
   // Mark uploading to avoid duplicate submission on crash/restart.
   // Assign `client_event_id` once per logical tap (first time we enter uploading) for server idempotency.
   await database.write(async () => {
     for (const m of slice) {
-      await m.update((rec) => {
+      await m.update(rec => {
         rec.outboxSyncStatus = 'uploading';
         rec.failReason = null;
         const existing = rec.clientEventId?.trim();
@@ -199,7 +222,7 @@ export async function pushPendingAttendanceOutbox(
     errors.push(msg);
     await database.write(async () => {
       for (const m of slice) {
-        await m.update((rec) => {
+        await m.update(rec => {
           rec.outboxSyncStatus = 'failed';
           rec.retryCount = m.retryCount + 1;
           rec.lastErrorAt = Date.now();
@@ -207,7 +230,7 @@ export async function pushPendingAttendanceOutbox(
         });
       }
     });
-    return { uploaded: 0, errors, deadLettered };
+    return {uploaded: 0, errors, deadLettered};
   }
 
   if (remoteRows.length !== slice.length) {
@@ -215,7 +238,7 @@ export async function pushPendingAttendanceOutbox(
     errors.push(msg);
     await database.write(async () => {
       for (const m of slice) {
-        await m.update((rec) => {
+        await m.update(rec => {
           rec.outboxSyncStatus = 'failed';
           rec.retryCount = m.retryCount + 1;
           rec.lastErrorAt = Date.now();
@@ -223,7 +246,7 @@ export async function pushPendingAttendanceOutbox(
         });
       }
     });
-    return { uploaded: 0, errors, deadLettered };
+    return {uploaded: 0, errors, deadLettered};
   }
 
   await database.write(async () => {
@@ -231,7 +254,7 @@ export async function pushPendingAttendanceOutbox(
       const m = slice[i]!;
       const row = remoteRows[i]!;
       const mirror = computeLocalAttendanceMirrorFromRemote(row, purgePolicy);
-      await m.update((rec) => {
+      await m.update(rec => {
         rec.serverRecordId = row.id;
         rec.outboxSyncStatus = mirror.outboxSyncStatus;
         rec.integrationPushStatus = mirror.integrationPushStatus;
@@ -244,5 +267,5 @@ export async function pushPendingAttendanceOutbox(
   });
 
   uploaded = slice.length;
-  return { uploaded, errors, deadLettered };
+  return {uploaded, errors, deadLettered};
 }

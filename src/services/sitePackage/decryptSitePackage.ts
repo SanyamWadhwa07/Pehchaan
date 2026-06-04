@@ -1,8 +1,8 @@
-import { gcm } from '@noble/ciphers/aes.js';
-import { sha256 } from 'js-sha256';
+import {gcm} from '@noble/ciphers/aes.js';
+import {sha256} from 'js-sha256';
 
-import type { SitePackageManifestV2Outer } from '@/services/sitePackage/sitePackageManifest';
-import { parseSitePackageInnerPayload } from '@/services/sitePackage/sitePackageManifest';
+import type {SitePackageManifestV2Outer} from '@/services/sitePackage/sitePackageManifest';
+import {parseSitePackageInnerPayload} from '@/services/sitePackage/sitePackageManifest';
 
 const MAX_INNER_BYTES = 25 * 1024 * 1024;
 
@@ -26,7 +26,10 @@ export function bytesToBase64(bytes: Uint8Array): string {
     const chunk = 8192;
     for (let i = 0; i < bytes.length; i += chunk) {
       const slice = bytes.subarray(i, Math.min(i + chunk, bytes.length));
-      bin += String.fromCharCode.apply(null, Array.from(slice) as unknown as number[]);
+      bin += String.fromCharCode.apply(
+        null,
+        Array.from(slice) as unknown as number[],
+      );
     }
     return globalThis.btoa(bin);
   }
@@ -44,7 +47,10 @@ export function bytesToUtf8(bytes: Uint8Array): string {
 /**
  * AES-256-GCM open: wire format `iv(12) || ciphertext` (ciphertext includes auth tag, Noble layout).
  */
-export function aesGcm256Open(key32: Uint8Array, ivAndSealed: Uint8Array): Uint8Array {
+export function aesGcm256Open(
+  key32: Uint8Array,
+  ivAndSealed: Uint8Array,
+): Uint8Array {
   if (key32.length !== 32) {
     throw new Error('AES-256-GCM requires a 32-byte key');
   }
@@ -94,10 +100,13 @@ export async function decryptSitePackageBuffer(
 }
 
 function sha256HexOfBytes(data: Uint8Array): string {
-  const buf = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  const buf = data.buffer.slice(
+    data.byteOffset,
+    data.byteOffset + data.byteLength,
+  );
   const digest = sha256.arrayBuffer(buf as ArrayBuffer) as ArrayBuffer;
   return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
+    .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 }
 
@@ -114,8 +123,8 @@ function verifySha256Hex(payload: Uint8Array, expectedHexLower: string): void {
  * - `per_device`: a device-specific 32-byte key provisioned during onboarding.
  */
 export type SitePackageKeyMaterial =
-  | { kind: 'site_master'; key32: Uint8Array }
-  | { kind: 'per_device'; deviceId: string; key32: Uint8Array };
+  | {kind: 'site_master'; key32: Uint8Array}
+  | {kind: 'per_device'; deviceId: string; key32: Uint8Array};
 
 /**
  * Resolve the wrapped data key from a v2 outer manifest using the provided key material.
@@ -136,7 +145,8 @@ function resolveDataKey(
       );
     }
     const wrap = base64ToBytes(
-      (outer.key_envelope as { kind: 'site_master_v1'; wrap_blob_b64: string }).wrap_blob_b64,
+      (outer.key_envelope as {kind: 'site_master_v1'; wrap_blob_b64: string})
+        .wrap_blob_b64,
     );
     const dataKey = aesGcm256Open(keyMaterial.key32, wrap);
     if (dataKey.length !== 32) {
@@ -155,7 +165,7 @@ function resolveDataKey(
     if (!envelopes || envelopes.length === 0) {
       throw new Error('per_device_v1 manifest has no device_envelopes');
     }
-    const entry = envelopes.find((e) => e.device_id === keyMaterial.deviceId);
+    const entry = envelopes.find(e => e.device_id === keyMaterial.deviceId);
     if (!entry) {
       throw new Error(
         `per_device_v1: no envelope found for device_id "${keyMaterial.deviceId}"`,

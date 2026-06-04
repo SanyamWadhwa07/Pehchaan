@@ -1,4 +1,4 @@
-import type { QualityCheck } from '@/types';
+import type {QualityCheck} from '@/types';
 
 /** Locale paths under the `qualityCheck` namespace in en.json / hi.json. */
 export const QUALITY_CHECK_I18N_KEYS = {
@@ -10,10 +10,7 @@ export const QUALITY_CHECK_I18N_KEYS = {
   multiple_faces: 'qualityCheck.multipleFaces',
   face_angle_too_high: 'qualityCheck.faceAngleTooHigh',
   occluded: 'qualityCheck.occluded',
-} as const satisfies Record<
-  NonNullable<QualityCheck['failReason']>,
-  string
->;
+} as const satisfies Record<NonNullable<QualityCheck['failReason']>, string>;
 
 export function qualityCheckTranslationKey(
   failReason: NonNullable<QualityCheck['failReason']>,

@@ -1,8 +1,8 @@
-import { Q } from '@nozbe/watermelondb';
-import type { Database } from '@nozbe/watermelondb';
+import {Q} from '@nozbe/watermelondb';
+import type {Database} from '@nozbe/watermelondb';
 
-import type { RegistrationRequestModel } from '@/db/models/RegistrationRequestModel';
-import { insertRegistrationRequest } from '@/repositories/registrationRepository';
+import type {RegistrationRequestModel} from '@/db/models/RegistrationRequestModel';
+import {insertRegistrationRequest} from '@/repositories/registrationRepository';
 
 /**
  * Maximum upload attempts for a registration request before it is dead-lettered.
@@ -10,7 +10,7 @@ import { insertRegistrationRequest } from '@/repositories/registrationRepository
  */
 export const REGISTRATION_MAX_RETRIES = 4;
 
-const BASE_BACKOFF_MS = 60_000;       // 1 min after first failure
+const BASE_BACKOFF_MS = 60_000; // 1 min after first failure
 const MAX_BACKOFF_MS = 4 * 60 * 60 * 1000; // 4 h ceiling
 
 /**
@@ -20,17 +20,33 @@ const MAX_BACKOFF_MS = 4 * 60 * 60 * 1000; // 4 h ceiling
  *   attempt 3 → 4 min
  *   attempt 4 → dead-lettered
  */
-function isBackoffExpired(retryCount: number, lastErrorAt: number | null): boolean {
-  if (retryCount <= 0) return true;
-  if (retryCount >= REGISTRATION_MAX_RETRIES) return false;
-  if (lastErrorAt == null) return true;
-  const backoffMs = Math.min(BASE_BACKOFF_MS * Math.pow(2, retryCount - 1), MAX_BACKOFF_MS);
+function isBackoffExpired(
+  retryCount: number,
+  lastErrorAt: number | null,
+): boolean {
+  if (retryCount <= 0) {
+    return true;
+  }
+  if (retryCount >= REGISTRATION_MAX_RETRIES) {
+    return false;
+  }
+  if (lastErrorAt == null) {
+    return true;
+  }
+  const backoffMs = Math.min(
+    BASE_BACKOFF_MS * Math.pow(2, retryCount - 1),
+    MAX_BACKOFF_MS,
+  );
   return Date.now() - lastErrorAt >= backoffMs;
 }
 
 function isEligibleForUpload(m: RegistrationRequestModel): boolean {
-  if (m.status !== 'pending_registration') return false;
-  if (m.serverRecordId != null) return false; // already uploaded; status update pending
+  if (m.status !== 'pending_registration') {
+    return false;
+  }
+  if (m.serverRecordId != null) {
+    return false;
+  } // already uploaded; status update pending
   return isBackoffExpired(m.retryCount, m.lastErrorAt);
 }
 
@@ -57,7 +73,9 @@ export async function pushPendingRegistrationOutbox(
   let uploaded = 0;
   let deadLettered = 0;
 
-  const collection = database.collections.get<RegistrationRequestModel>('registration_requests');
+  const collection = database.collections.get<RegistrationRequestModel>(
+    'registration_requests',
+  );
 
   const candidates = await collection
     .query(Q.where('status', 'pending_registration'))
@@ -78,9 +96,10 @@ export async function pushPendingRegistrationOutbox(
     deadLettered = toDeadLetter.length;
     await database.write(async () => {
       for (const m of toDeadLetter) {
-        await m.update((rec) => {
+        await m.update(rec => {
           rec.reviewNote =
-            `[sync_dead_lettered after ${m.retryCount} attempts] ` + (m.reviewNote ?? '');
+            `[sync_dead_lettered after ${m.retryCount} attempts] ` +
+            (m.reviewNote ?? '');
         });
       }
     });
@@ -98,7 +117,7 @@ export async function pushPendingRegistrationOutbox(
       });
 
       await database.write(async () => {
-        await m.update((rec) => {
+        await m.update(rec => {
           rec.serverRecordId = serverRow.id;
           rec.status = serverRow.status;
           rec.retryCount = 0;
@@ -113,7 +132,7 @@ export async function pushPendingRegistrationOutbox(
       const msg = e instanceof Error ? e.message : String(e);
       errors.push(`[reg:${m.id}] ${msg}`);
       await database.write(async () => {
-        await m.update((rec) => {
+        await m.update(rec => {
           rec.retryCount = m.retryCount + 1;
           rec.lastErrorAt = Date.now();
         });
@@ -121,5 +140,5 @@ export async function pushPendingRegistrationOutbox(
     }
   }
 
-  return { uploaded, errors, deadLettered };
+  return {uploaded, errors, deadLettered};
 }

@@ -1,7 +1,7 @@
-import type { Session, User } from '@supabase/supabase-js';
-import { create } from 'zustand';
+import type {Session, User} from '@supabase/supabase-js';
+import {create} from 'zustand';
 
-import { supabase } from '@/lib/supabase';
+import {supabase} from '@/lib/supabase';
 
 type AuthState = {
   session: Session | null;
@@ -11,13 +11,12 @@ type AuthState = {
   setLoading: (loading: boolean) => void;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>(set => ({
   session: null,
   user: null,
   loading: true,
-  setSession: (session) =>
-    set({ session, user: session?.user ?? null }),
-  setLoading: (loading) => set({ loading }),
+  setSession: session => set({session, user: session?.user ?? null}),
+  setLoading: loading => set({loading}),
 }));
 
 let authListenerSubscribed = false;
@@ -31,7 +30,12 @@ export function subscribeAuthToStore(): void {
   }
   authListenerSubscribed = true;
 
-  void supabase.auth.getSession().then(({ data }) => {
+  if (!supabase) {
+    useAuthStore.getState().setLoading(false);
+    return;
+  }
+
+  void supabase.auth.getSession().then(({data}) => {
     useAuthStore.getState().setSession(data.session ?? null);
     useAuthStore.getState().setLoading(false);
   });

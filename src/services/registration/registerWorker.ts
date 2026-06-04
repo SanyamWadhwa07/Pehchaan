@@ -1,4 +1,4 @@
-import { supabaseEnv } from '@/config/env';
+import {supabaseEnv} from '@/config/env';
 
 export type RegisterWorkerPayload = {
   name: string;
@@ -23,7 +23,7 @@ export async function registerWorker(
   payload: RegisterWorkerPayload,
 ): Promise<RegisterWorkerResponse> {
   if (!supabaseEnv.url) {
-    await new Promise<void>((resolve) => {
+    await new Promise<void>(resolve => {
       setTimeout(() => resolve(), 500);
     });
     return {
@@ -36,7 +36,9 @@ export async function registerWorker(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(supabaseEnv.anonKey ? { Authorization: `Bearer ${supabaseEnv.anonKey}` } : {}),
+      ...(supabaseEnv.anonKey
+        ? {Authorization: `Bearer ${supabaseEnv.anonKey}`}
+        : {}),
     },
     body: JSON.stringify(payload),
   });

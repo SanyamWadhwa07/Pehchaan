@@ -1,6 +1,12 @@
-import React, { useEffect } from 'react';
+import React, {useEffect} from 'react';
 
-import { subscribeAuthToStore } from '@/stores/authStore';
+import {useSitePackageHydration} from '@/hooks/useSitePackageHydration';
+import {subscribeAuthToStore} from '@/stores/authStore';
+
+function AuthSessionEffects(): null {
+  useSitePackageHydration();
+  return null;
+}
 
 /** Mount once so Supabase session hydrates into Zustand before navigation gates. */
 export function AuthStoreRoot({
@@ -12,5 +18,10 @@ export function AuthStoreRoot({
     subscribeAuthToStore();
   }, []);
 
-  return <>{children}</>;
+  return (
+    <>
+      <AuthSessionEffects />
+      {children}
+    </>
+  );
 }

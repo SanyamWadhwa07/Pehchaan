@@ -1,8 +1,8 @@
 import React from 'react';
 
-import { database } from '@/db';
-import { useAuthStore } from '@/stores/authStore';
-import { useSyncScheduler } from '@/services/sync';
+import {database} from '@/db';
+import {useAuthStore} from '@/stores/authStore';
+import {useSyncScheduler} from '@/services/sync';
 
 /**
  * Thin wrapper rendered only while a **device-role** session is active.
@@ -25,32 +25,38 @@ import { useSyncScheduler } from '@/services/sync';
  * ```
  */
 
-type Props = { children: React.ReactNode };
+type Props = {children: React.ReactNode};
 
-function DeviceSyncMount({ children }: Props): React.JSX.Element {
-  const siteId = useAuthStore((s) => {
+function DeviceSyncMount({children}: Props): React.JSX.Element {
+  const siteId = useAuthStore(s => {
     const raw = s.session?.user?.app_metadata?.site_id;
     return typeof raw === 'string' ? raw : undefined;
   });
-  const deviceId = useAuthStore((s) => {
+  const deviceId = useAuthStore(s => {
     const raw = s.session?.user?.app_metadata?.device_id;
     return typeof raw === 'string' ? raw : undefined;
   });
 
-  const { runSync } = useSyncScheduler({
+  const {runSync} = useSyncScheduler({
     database,
     siteId,
     deviceId,
     intervalMs: 5 * 60_000,
-    onSyncComplete: (r) => {
+    onSyncComplete: r => {
       if (__DEV__) {
         console.log(
-          '[sync] attendance uploaded:', r.attendance.uploaded,
-          'deadLettered:', r.attendance.deadLettered,
-          'registration uploaded:', r.registration.uploaded,
-          'deadLettered:', r.registration.deadLettered,
-          'revocations applied:', r.revocations?.applied ?? 0,
-          'reconcile updated:', r.reconcileAttendance?.updated ?? 0,
+          '[sync] attendance uploaded:',
+          r.attendance.uploaded,
+          'deadLettered:',
+          r.attendance.deadLettered,
+          'registration uploaded:',
+          r.registration.uploaded,
+          'deadLettered:',
+          r.registration.deadLettered,
+          'revocations applied:',
+          r.revocations?.applied ?? 0,
+          'reconcile updated:',
+          r.reconcileAttendance?.updated ?? 0,
         );
         if (
           r.attendance.errors.length ||
@@ -65,7 +71,7 @@ function DeviceSyncMount({ children }: Props): React.JSX.Element {
         }
       }
     },
-    onError: (err) => {
+    onError: err => {
       if (__DEV__) {
         console.error('[sync] scheduler error:', err);
       }
@@ -79,8 +85,8 @@ function DeviceSyncMount({ children }: Props): React.JSX.Element {
   return <>{children}</>;
 }
 
-export function DeviceSessionRoot({ children }: Props): React.JSX.Element {
-  const session = useAuthStore((s) => s.session);
+export function DeviceSessionRoot({children}: Props): React.JSX.Element {
+  const session = useAuthStore(s => s.session);
   const role = session?.user?.app_metadata?.pehchaan_role as string | undefined;
 
   if (role !== 'device') {

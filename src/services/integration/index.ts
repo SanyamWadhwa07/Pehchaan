@@ -1,33 +1,53 @@
 /**
  * Sync layer — pluggable backend interface (DataLink 3.0 in prod, Supabase in dev).
- * Owner: Maulik. Payloads use camelCase (@/types); map at HTTP boundary if API uses snake_case.
+ * Owner: Maulik (scaffold); OpenAPI paths for auth/registration flows: Aahil Day 2.
+ *
+ * | Client function    | OpenAPI / transport                                      |
+ * | ------------------ | -------------------------------------------------------- |
+ * | pushAttendance     | POST /push-to-integration (stub) · prod DataLink         |
+ * | pushWorker         | POST /register-worker (Supabase Edge)                    |
+ * | syncRevocations    | POST /sync-revocations                                   |
+ * | (field reg sync)   | POST /registration-requests (PostgREST via outbox)       |
+ * | (attendance sync)  | POST /attendance/batch (PostgREST via outbox)            |
  *
  * @see openapi.yaml
  * @see docs/CODE_CONVENTIONS.md
  */
 
-import { integrationEnv, isIntegrationConfigured } from '@/config/env';
-import type { AttendanceRecord, Worker, UUID, ISOTimestamp } from '@/types';
+import {integrationEnv, isIntegrationConfigured} from '@/config/env';
+import type {AttendanceRecord, Worker, UUID, ISOTimestamp} from '@/types';
 
-// Payload shapes are subsets of the shared types — only what the backend needs
 export type AttendancePayload = Pick<
   AttendanceRecord,
-  'workerId' | 'siteId' | 'deviceId' | 'supervisorId' | 'supervisorConfirmed' |
-  'authTimestamp' | 'confidence' | 'livenessScore'
+  | 'workerId'
+  | 'siteId'
+  | 'deviceId'
+  | 'supervisorId'
+  | 'supervisorConfirmed'
+  | 'authTimestamp'
+  | 'confidence'
+  | 'livenessScore'
 >;
 
-export type WorkerPayload = Pick<Worker, 'id' | 'name' | 'role' | 'siteId' | 'enrolledAt'>;
+export type WorkerPayload = Pick<
+  Worker,
+  'id' | 'name' | 'role' | 'siteId' | 'enrolledAt'
+>;
 
 export interface RevocationPayload {
   workerIds: UUID[];
   revokedAt: ISOTimestamp;
 }
 
-// TODO (Maulik — Day 3): Wire these to the live DataLink 3.0 endpoint once
-// NHAI provides credentials. Until then they are no-ops that log the payload.
-
-export async function pushAttendance(payload: AttendancePayload): Promise<void> {
-  if (!isIntegrationConfigured()) return;
+/**
+ * POST /push-to-integration — no-op until `INTEGRATION_API_KEY` is set.
+ */
+export async function pushAttendance(
+  payload: AttendancePayload,
+): Promise<void> {
+  if (!isIntegrationConfigured()) {
+    return;
+  }
   await fetch(`${integrationEnv.endpoint}/attendance`, {
     method: 'POST',
     headers: {
@@ -38,8 +58,11 @@ export async function pushAttendance(payload: AttendancePayload): Promise<void> 
   });
 }
 
+/** POST /workers — DataLink worker upsert (stub). */
 export async function pushWorker(payload: WorkerPayload): Promise<void> {
-  if (!isIntegrationConfigured()) return;
+  if (!isIntegrationConfigured()) {
+    return;
+  }
   await fetch(`${integrationEnv.endpoint}/workers`, {
     method: 'POST',
     headers: {
@@ -50,8 +73,13 @@ export async function pushWorker(payload: WorkerPayload): Promise<void> {
   });
 }
 
-export async function syncRevocations(payload: RevocationPayload): Promise<void> {
-  if (!isIntegrationConfigured()) return;
+/** POST /sync-revocations */
+export async function syncRevocations(
+  payload: RevocationPayload,
+): Promise<void> {
+  if (!isIntegrationConfigured()) {
+    return;
+  }
   await fetch(`${integrationEnv.endpoint}/revocations`, {
     method: 'POST',
     headers: {

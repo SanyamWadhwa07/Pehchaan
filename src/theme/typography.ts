@@ -1,6 +1,6 @@
-import type { TextStyle } from 'react-native';
+import type {TextStyle} from 'react-native';
 
-import { colors } from '@/theme/colors';
+import {colors} from '@/theme/colors';
 
 export const typography = {
   heading: {

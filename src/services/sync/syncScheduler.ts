@@ -1,30 +1,30 @@
-import { useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
-import type { AppStateStatus } from 'react-native';
-import type { Database } from '@nozbe/watermelondb';
+import {useEffect, useRef} from 'react';
+import {AppState} from 'react-native';
+import type {AppStateStatus} from 'react-native';
+import type {Database} from '@nozbe/watermelondb';
 import Config from 'react-native-config';
 import NetInfo from '@react-native-community/netinfo';
 
-import { reconcileAttendanceFromServer } from '@/services/sync/attendanceRemoteReconcile';
-import { pushPendingAttendanceOutbox } from '@/services/sync/attendanceOutboxSync';
-import { pushPendingRegistrationOutbox } from '@/services/sync/registrationOutboxSync';
-import { syncRevocationsFromServer } from '@/services/sync/revocationRemoteSync';
-import { attendancePurgePolicyFromEnv } from '@/services/sync/syncStatusMap';
+import {reconcileAttendanceFromServer} from '@/services/sync/attendanceRemoteReconcile';
+import {pushPendingAttendanceOutbox} from '@/services/sync/attendanceOutboxSync';
+import {pushPendingRegistrationOutbox} from '@/services/sync/registrationOutboxSync';
+import {syncRevocationsFromServer} from '@/services/sync/revocationRemoteSync';
+import {attendancePurgePolicyFromEnv} from '@/services/sync/syncStatusMap';
 
 export type SyncResult = {
-  attendance: { uploaded: number; errors: string[]; deadLettered: number };
-  registration: { uploaded: number; errors: string[]; deadLettered: number };
+  attendance: {uploaded: number; errors: string[]; deadLettered: number};
+  registration: {uploaded: number; errors: string[]; deadLettered: number};
   /** Present when `siteId` was configured — revocation pull + WMDB worker updates. */
-  revocations?: { applied: number; errors: string[] };
+  revocations?: {applied: number; errors: string[]};
   /** Present when `siteId` was configured — server ↔ local mirror for already-uploaded rows. */
-  reconcileAttendance?: { updated: number; errors: string[] };
+  reconcileAttendance?: {updated: number; errors: string[]};
 };
 
 export type SyncSchedulerConfig = {
   database: Database;
   /**
    * Device site UUID (`app_metadata.site_id`). When set, after each push cycle the scheduler
-   * runs `reconcileAttendanceFromServer` so integration / supervisor edits propagate locally.
+   * runs revocation pull + `reconcileAttendanceFromServer` so integration / supervisor edits propagate locally.
    */
   siteId?: string;
   /**
@@ -61,12 +61,17 @@ export type SyncSchedulerConfig = {
  * **Revocation sync** runs after pushes when `siteId` is configured (see `syncRevocationsFromServer`).
  */
 export function createSyncScheduler(config: SyncSchedulerConfig) {
-  const { database, siteId, deviceId, intervalMs = 5 * 60_000, onSyncComplete, onError } = config;
+  const {database, siteId, deviceId, intervalMs = 5 * 60_000, onSyncComplete, onError} =
+    config;
   let running = false;
-  const purgePolicy = attendancePurgePolicyFromEnv(Config.ATTENDANCE_PURGE_AFTER_INTEGRATION);
+  const purgePolicy = attendancePurgePolicyFromEnv(
+    Config.ATTENDANCE_PURGE_AFTER_INTEGRATION,
+  );
 
   const runSync = async (): Promise<SyncResult | null> => {
-    if (running) return null;
+    if (running) {
+      return null;
+    }
     running = true;
     try {
       const [attSettled, regSettled] = await Promise.allSettled([
@@ -79,7 +84,10 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
           ? attSettled.value
           : {
               uploaded: 0,
-              errors: [(attSettled as PromiseRejectedResult).reason?.message ?? 'unknown'],
+              errors: [
+                (attSettled as PromiseRejectedResult).reason?.message ??
+                  'unknown',
+              ],
               deadLettered: 0,
             };
 
@@ -88,12 +96,15 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
           ? regSettled.value
           : {
               uploaded: 0,
-              errors: [(regSettled as PromiseRejectedResult).reason?.message ?? 'unknown'],
+              errors: [
+                (regSettled as PromiseRejectedResult).reason?.message ??
+                  'unknown',
+              ],
               deadLettered: 0,
             };
 
-      let revocations: { applied: number; errors: string[] } | undefined;
-      let reconcileAttendance: { updated: number; errors: string[] } | undefined;
+      let revocations: {applied: number; errors: string[]} | undefined;
+      let reconcileAttendance: {updated: number; errors: string[]} | undefined;
       if (siteId && siteId.trim().length > 0) {
         const sid = siteId.trim();
         try {
@@ -103,7 +114,7 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
           });
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
-          revocations = { applied: 0, errors: [msg] };
+          revocations = {applied: 0, errors: [msg]};
         }
 
         try {
@@ -113,11 +124,16 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
           });
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
-          reconcileAttendance = { updated: 0, errors: [msg] };
+          reconcileAttendance = {updated: 0, errors: [msg]};
         }
       }
 
-      const result: SyncResult = { attendance, registration, revocations, reconcileAttendance };
+      const result: SyncResult = {
+        attendance,
+        registration,
+        revocations,
+        reconcileAttendance,
+      };
       onSyncComplete?.(result);
       return result;
     } catch (err) {
@@ -144,7 +160,7 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
       }, intervalMs);
     }
 
-    const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
       if (state.isConnected !== true) {
         return;
       }
@@ -159,12 +175,14 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
 
     return () => {
       sub.remove();
-      if (timer !== null) clearInterval(timer);
+      if (timer !== null) {
+        clearInterval(timer);
+      }
       unsubscribeNetInfo();
     };
   };
 
-  return { start, runSync };
+  return {start, runSync};
 }
 
 /**
@@ -176,8 +194,12 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
  * useSyncScheduler({ database, siteId: sessionSiteId, intervalMs: 5 * 60_000 });
  * ```
  */
-export function useSyncScheduler(config: SyncSchedulerConfig): { runSync: () => Promise<SyncResult | null> } {
-  const schedulerRef = useRef<ReturnType<typeof createSyncScheduler> | null>(null);
+export function useSyncScheduler(config: SyncSchedulerConfig): {
+  runSync: () => Promise<SyncResult | null>;
+} {
+  const schedulerRef = useRef<ReturnType<typeof createSyncScheduler> | null>(
+    null,
+  );
 
   useEffect(() => {
     const scheduler = createSyncScheduler(config);

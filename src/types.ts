@@ -26,7 +26,12 @@ export type ConfidenceScore = number;
  *              any state → Failed (exponential backoff retry)
  * Purge only after server ACK.
  */
-export type SyncStatus = 'pending' | 'uploading' | 'verified' | 'purged' | 'failed';
+export type SyncStatus =
+  | 'pending'
+  | 'uploading'
+  | 'verified'
+  | 'purged'
+  | 'failed';
 
 /**
  * Auth confidence tier — drives number of liveness challenges.
@@ -43,7 +48,11 @@ export type LivenessChallenge = 'blink' | 'turn_left' | 'turn_right';
 export type SupervisorAction = 'confirmed' | 'rejected';
 
 /** DataLink 3.0 push status — set by server-side edge function only. */
-export type IntegrationPushStatus = 'queued' | 'pushed' | 'failed' | 'not_applicable';
+export type IntegrationPushStatus =
+  | 'queued'
+  | 'pushed'
+  | 'failed'
+  | 'not_applicable';
 
 // ---------------------------------------------------------------------------
 // Worker
@@ -72,7 +81,7 @@ export interface Worker {
 /** Raw output from BlazeFace detector (before crop / quality check). */
 export interface FaceDetection {
   /** Bounding box in [0,1] normalised coordinates */
-  box: { x: number; y: number; width: number; height: number };
+  box: {x: number; y: number; width: number; height: number};
   /** Detector confidence, not the recognition confidence */
   detectorScore: number;
 }
@@ -121,7 +130,7 @@ export interface RecognitionResult {
   confidence: ConfidenceScore;
   authTier: AuthTier;
   qualityCheck: QualityCheck;
-  /** 128-dim embedding as base64 (used internally, not stored) */
+  /** 512-dim embedding as base64 (used internally, not stored) */
   embeddingBase64?: string;
   inferenceMs: number;
 }
@@ -141,6 +150,26 @@ export interface LivenessSession {
   /** Aggregate liveness score in [0, 1] */
   score: number;
   totalDurationMs: number;
+}
+
+/** Client-side session between auth flow and supervisor confirmation (Zustand). */
+export type PendingAuthStatus =
+  | 'awaiting_confirmation'
+  | 'confirmed'
+  | 'rejected';
+
+export interface PendingAuthSession {
+  status: PendingAuthStatus;
+  workerId: UUID;
+  workerName: string;
+  thumbnailBase64?: string;
+  siteId: UUID;
+  deviceId: UUID;
+  confidence: ConfidenceScore;
+  authTier: AuthTier;
+  livenessSession: LivenessSession;
+  requiresSupervisorFlag: boolean;
+  createdAt: ISOTimestamp;
 }
 
 // ---------------------------------------------------------------------------
@@ -218,7 +247,7 @@ export interface WorkerEmbeddingEntry {
   name: string;
   role: string;
   thumbnailBase64: string;
-  /** Float32Array serialised as base64 — 128-dim cosine embedding */
+  /** Float32Array serialised as base64 — 512-dim cosine embedding (MobileFaceNet output) */
   embeddingBase64: string;
   isRevoked: boolean;
 }
@@ -254,7 +283,7 @@ export type CaptureAngle =
   | 'left_30'
   | 'right_30'
   | 'up_tilt'
-  | 'helmet_on'   // optional PPE
+  | 'helmet_on' // optional PPE
   | 'glasses_on'; // optional PPE
 
 // ---------------------------------------------------------------------------

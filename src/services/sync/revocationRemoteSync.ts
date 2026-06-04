@@ -3,7 +3,7 @@ import type { Database } from '@nozbe/watermelondb';
 
 import type { Worker } from '@/db/models/Worker';
 import { fetchDeviceById } from '@/repositories/devicesRepository';
-import { supabase } from '@/lib/supabase';
+import { requireSupabase } from '@/lib/supabase';
 
 export type RevocationSyncOptions = {
   siteId: string;
@@ -62,9 +62,12 @@ export async function syncRevocationsFromServer(
     body.device_id = deviceId;
   }
 
-  const { data, error } = await supabase.functions.invoke<EdgePayload>('sync-revocations', {
-    body,
-  });
+  const { data, error } = await requireSupabase().functions.invoke<EdgePayload>(
+    'sync-revocations',
+    {
+      body,
+    },
+  );
 
   if (error) {
     errors.push(error.message);

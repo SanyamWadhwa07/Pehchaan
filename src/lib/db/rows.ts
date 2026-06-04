@@ -4,12 +4,7 @@
  * Use only inside sync and API layers. Screens and hooks should use @/types.
  */
 
-import type {
-  AuthTier,
-  IntegrationPushStatus,
-  LivenessChallenge,
-  SyncStatus,
-} from '@/types';
+import type {AuthTier, IntegrationPushStatus, SyncStatus} from '@/types';
 
 export interface WorkerRow {
   id: string;

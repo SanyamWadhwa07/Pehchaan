@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase';
-import type { RegistrationRequestRow } from '@/lib/db/rows';
+import {requireSupabase} from '@/lib/supabase';
+import type {RegistrationRequestRow} from '@/lib/db/rows';
 
 const REG_COLUMNS =
   'id, worker_name, role, aadhaar_ref_hash, site_id, submitted_by, status, review_note, created_at, approved_at';
@@ -16,7 +16,7 @@ export type RegistrationInsert = {
 export async function insertRegistrationRequest(
   row: RegistrationInsert,
 ): Promise<RegistrationRequestRow> {
-  const { data, error } = await supabase
+  const {data, error} = await requireSupabase()
     .from('registration_requests')
     .insert({
       worker_name: row.worker_name,
@@ -58,9 +58,12 @@ export type ApproveRegistrationResult = {
 export async function approveRegistrationRequest(
   registrationRequestId: string,
 ): Promise<ApproveRegistrationResult> {
-  const { data, error } = await supabase.functions.invoke('register-worker', {
-    body: { registration_request_id: registrationRequestId },
-  });
+  const {data, error} = await requireSupabase().functions.invoke(
+    'register-worker',
+    {
+      body: {registration_request_id: registrationRequestId},
+    },
+  );
   if (error) {
     throw error;
   }
@@ -71,11 +74,11 @@ export async function fetchRegistrationRequestsForSite(
   siteId: string,
   limit = 50,
 ): Promise<RegistrationRequestRow[]> {
-  const { data, error } = await supabase
+  const {data, error} = await requireSupabase()
     .from('registration_requests')
     .select(REG_COLUMNS)
     .eq('site_id', siteId)
-    .order('created_at', { ascending: false })
+    .order('created_at', {ascending: false})
     .limit(limit);
 
   if (error) {

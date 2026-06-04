@@ -53,9 +53,7 @@ export function attendanceFromRow(row: AttendanceRecordRow): AttendanceRecord {
   };
 }
 
-export function attendanceToRow(
-  record: AttendanceRecord,
-): AttendanceRecordRow {
+export function attendanceToRow(record: AttendanceRecord): AttendanceRecordRow {
   return {
     id: record.id,
     worker_id: record.workerId,

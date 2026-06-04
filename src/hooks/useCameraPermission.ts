@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Camera } from 'react-native-vision-camera';
+import {useEffect, useState} from 'react';
+import {Camera} from 'react-native-vision-camera';
 
 export async function ensureCameraPermission(): Promise<boolean> {
   const current = await Camera.getCameraPermissionStatus();
@@ -15,13 +15,11 @@ type UseCameraPermissionOptions = {
   autoRequest?: boolean;
 };
 
-export function useCameraPermission(
-  options: UseCameraPermissionOptions = {},
-): {
+export function useCameraPermission(options: UseCameraPermissionOptions = {}): {
   hasPermission: boolean;
   isRequesting: boolean;
 } {
-  const { autoRequest = true } = options;
+  const {autoRequest = true} = options;
   const [hasPermission, setHasPermission] = useState(false);
   const [isRequesting, setIsRequesting] = useState(autoRequest);
 
@@ -44,5 +42,5 @@ export function useCameraPermission(
     })();
   }, [autoRequest]);
 
-  return { hasPermission, isRequesting };
+  return {hasPermission, isRequesting};
 }

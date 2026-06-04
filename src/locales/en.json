@@ -36,7 +36,16 @@
     "timeout": "Check timed out. Please try again.",
     "failed": "Liveness check failed.",
     "attempt": "Attempt {{count}} of 3",
+    "step": "Step {{current}} of {{total}}",
+    "secondsLeft": "{{seconds}}s remaining",
+    "continueAnyway": "Continue — supervisor will verify",
+    "lowConfidenceFlag": "Low match confidence — supervisor must verify carefully.",
     "supervisorOverride": "Please contact your supervisor."
+  },
+  "recognition": {
+    "running": "Matching face...",
+    "failed": "Worker not recognized. Adjust position and lighting.",
+    "backToQuality": "Back to quality check"
   },
   "authResult": {
     "success": "Authenticated",
@@ -44,23 +53,31 @@
     "workerId": "ID: {{id}}",
     "waitingConfirmation": "Waiting for supervisor confirmation...",
     "rejected": "Authentication rejected by supervisor.",
-    "failed": "Authentication failed. Worker not recognized."
+    "failed": "Authentication failed. Worker not recognized.",
+    "done": "Done"
   },
   "supervisorConfirmation": {
     "title": "Confirm Worker Identity",
     "instruction": "Verify the person in front of you matches the photo.",
     "confirm": "Confirm Attendance",
-    "reject": "Reject"
+    "reject": "Reject",
+    "lowConfidenceWarning": "Low confidence match — verify identity carefully."
   },
   "registration": {
     "title": "Register New Worker",
+    "devEntry": "Field registration (dev)",
+    "stepDetails": "Worker details",
+    "stepConfirm": "Confirm and queue",
     "name": "Full Name",
     "role": "Role / Trade",
     "idNumber": "ID Number",
     "contactNumber": "Contact Number",
     "languagePreference": "Preferred Language",
+    "validationRequired": "This field is required.",
+    "validationIdRequired": "ID number is required.",
     "capturePhoto": "Capture Photo",
     "captureInstruction": "Look directly at the camera.",
+    "acceptCapture": "Accept capture",
     "submitting": "Submitting registration...",
     "successQueued": "Registration queued. Will sync when connected.",
     "successSubmitted": "Worker registered successfully."
@@ -71,7 +88,12 @@
     "syncStatus": "Sync Status",
     "pendingSync": "{{count}} records pending sync",
     "lastSync": "Last sync: {{time}}",
-    "registerWorker": "Register New Worker"
+    "registerWorker": "Register New Worker",
+    "pendingAuth": "Worker awaiting confirmation",
+    "reviewNow": "Review now",
+    "shiftLabel": "Shift",
+    "shiftMorning": "Morning",
+    "siteLabel": "Site"
   },
   "login": {
     "title": "Sign in",
@@ -79,7 +101,8 @@
     "email": "Email",
     "password": "Password",
     "signIn": "Sign in",
-    "validationRequired": "Enter email and password."
+    "validationRequired": "Enter email and password.",
+    "configMissing": "Supabase not loaded. Rebuild the app after editing .env in the project root."
   },
   "settings": {
     "title": "Settings",

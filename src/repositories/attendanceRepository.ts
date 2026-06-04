@@ -1,12 +1,12 @@
-import { supabase } from '@/lib/supabase';
-import type { AttendanceRecordRow } from '@/lib/db/rows';
+import {requireSupabase} from '@/lib/supabase';
+import type {AttendanceRecordRow} from '@/lib/db/rows';
 
 const ATT_COLUMNS =
   'id, worker_id, site_id, device_id, auth_timestamp, confidence_score, auth_tier, liveness_score, liveness_passed, challenge_type, challenge_result, supervisor_id, supervisor_confirmed, sync_status, server_record_id, synced_at, purged_at, fail_reason, integration_push_status, client_event_id';
 
 /** JSON objects for `insert_attendance_batch_idempotent` (Postgres snake_case keys). */
 export function attendanceRowToRpcPayload(
-  row: Omit<AttendanceRecordRow, 'id'> & { id?: string },
+  row: Omit<AttendanceRecordRow, 'id'> & {id?: string},
 ): Record<string, unknown> {
   return {
     worker_id: row.worker_id,
@@ -32,11 +32,12 @@ export function attendanceRowToRpcPayload(
 }
 
 export async function insertAttendanceRecord(
-  row: Omit<AttendanceRecordRow, 'id'> & { id?: string },
+  row: Omit<AttendanceRecordRow, 'id'> & {id?: string},
 ): Promise<AttendanceRecordRow> {
-  const { data, error } = await supabase.rpc('insert_attendance_batch_idempotent', {
-    p_rows: [attendanceRowToRpcPayload(row)],
-  });
+  const {data, error} = await requireSupabase().rpc(
+    'insert_attendance_batch_idempotent',
+    {p_rows: [attendanceRowToRpcPayload(row)]},
+  );
 
   if (error) {
     throw error;
@@ -51,14 +52,15 @@ export async function insertAttendanceRecord(
 
 /** Batch idempotent insert (device JWT). Order of returned rows matches input order. */
 export async function insertAttendanceRecordsBatch(
-  rows: Array<Omit<AttendanceRecordRow, 'id'> & { id?: string }>,
+  rows: Array<Omit<AttendanceRecordRow, 'id'> & {id?: string}>,
 ): Promise<AttendanceRecordRow[]> {
   if (rows.length === 0) {
     return [];
   }
-  const { data, error } = await supabase.rpc('insert_attendance_batch_idempotent', {
-    p_rows: rows.map(attendanceRowToRpcPayload),
-  });
+  const {data, error} = await requireSupabase().rpc(
+    'insert_attendance_batch_idempotent',
+    {p_rows: rows.map(attendanceRowToRpcPayload)},
+  );
 
   if (error) {
     throw error;
@@ -78,7 +80,7 @@ export async function fetchAttendanceRecordsByIds(
   const out: AttendanceRecordRow[] = [];
   for (let i = 0; i < ids.length; i += FETCH_BY_IDS_CHUNK) {
     const chunk = ids.slice(i, i + FETCH_BY_IDS_CHUNK);
-    const { data, error } = await supabase
+    const {data, error} = await requireSupabase()
       .from('attendance_records')
       .select(ATT_COLUMNS)
       .in('id', chunk);
@@ -94,11 +96,11 @@ export async function fetchAttendanceForSite(
   siteId: string,
   limit = 50,
 ): Promise<AttendanceRecordRow[]> {
-  const { data, error } = await supabase
+  const {data, error} = await requireSupabase()
     .from('attendance_records')
     .select(ATT_COLUMNS)
     .eq('site_id', siteId)
-    .order('auth_timestamp', { ascending: false })
+    .order('auth_timestamp', {ascending: false})
     .limit(limit);
 
   if (error) {
