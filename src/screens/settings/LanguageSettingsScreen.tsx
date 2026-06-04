@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Screen } from '@/components/Screen';
 import { useAppLanguage } from '@/hooks/useAppLanguage';
 import type { AppLanguage } from '@/i18n';
+import { logout } from '@/services/auth/authService';
 import { colors } from '@/theme/colors';
 
 export function LanguageSettingsScreen(): React.JSX.Element {
@@ -37,6 +38,17 @@ export function LanguageSettingsScreen(): React.JSX.Element {
           );
         })}
       </View>
+
+      <Pressable
+        style={styles.signOut}
+        onPress={() => {
+          void (async () => {
+            await logout();
+          })();
+        }}
+        accessibilityRole="button">
+        <Text style={styles.signOutText}>{t('settings.signOut')}</Text>
+      </Pressable>
     </Screen>
   );
 }
@@ -67,7 +79,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   optionTextSelected: {
-    color: colors.primaryText,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  signOut: {
+    marginTop: 32,
+    padding: 16,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.error,
+    alignItems: 'center',
+  },
+  signOutText: {
+    color: colors.error,
+    fontSize: 16,
     fontWeight: '600',
   },
 });

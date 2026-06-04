@@ -15,11 +15,13 @@ Pehchaan authenticates construction workers **fully offline** using on-device fa
 | Anoushka | React Native + Backend |
 | Sanyam Wadhwa | ML / AI |
 
+**Day 1:** [docs/DAY1_PROGRESS.md](docs/DAY1_PROGRESS.md) · **Day 2 (Anoushka):** [docs/DAY2_TASKS.md](docs/DAY2_TASKS.md) · **Secrets sample:** [docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md](docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md) · **Policies:** [Key rotation](docs/POLICY_KEY_ROTATION.md) · [Biometric retention](docs/POLICY_BIOMETRIC_RETENTION.md) · **Storage + local DB (manual):** [docs/STORAGE_AND_WATERMELON_USER_TASKS.md](docs/STORAGE_AND_WATERMELON_USER_TASKS.md)
+
 ---
 
 ## Tech Stack
 
-React Native 0.73 · MobileFaceNet TFLite INT8 (Indian demographic tuned) · BlazeFace · WatermelonDB · AES-256-GCM · i18next (English + Hindi)
+React Native 0.73 · MobileFaceNet TFLite INT8 (Indian demographic tuned) · BlazeFace · WatermelonDB · Zustand · AES-256-GCM · i18next (English + Hindi)
 
 **Backend:** Pluggable sync layer designed for NHAI DataLink 3.0. Prototype uses Supabase as a dev mock backend — swapping to DataLink 3.0 is a config change, not a code change.
 
@@ -39,8 +41,11 @@ git clone <repo-url>
 cd Pehchaan
 npm install
 cp .env.example .env
-# Fill in .env with your Supabase credentials
 ```
+
+Edit **`.env`** in the project root (file is gitignored). In Supabase: **Project Settings → API**, copy **Project URL** into `SUPABASE_URL` and the **anon public** key into `SUPABASE_ANON_KEY`. Rebuild the native app after changing `.env` (`react-native-config` reads it at build time).
+
+Do not add the **service_role** key to `.env` — it would be bundled into the app; use it only in Supabase Dashboard or server-side edge functions.
 
 ### ML Models
 ```bash
@@ -52,8 +57,17 @@ cp .env.example .env
 
 ### Database
 ```bash
-# Apply migrations via Supabase CLI
-supabase db push
+# Apply migrations via Supabase CLI (see supabase/README.md).
+# Expect 001 (schema), 002 (RLS), 003 (storage bucket policies for site-packages).
+npx supabase db push
+```
+
+### Verify auth + RLS (optional)
+
+From the project root, set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and test credentials (see `scripts/verify-auth-rls.cjs` header), then:
+
+```bash
+npm run verify:auth-rls
 ```
 
 ### Run (Android)

@@ -12,6 +12,45 @@ servers:
     description: Supabase Edge Functions
 
 components:
+  schemas:
+    PendingAuthSession:
+      description: |
+        Client-side only (Zustand `pendingAuthStore`). Not an HTTP endpoint.
+        Supervisor confirmation reads this shape after device auth completes.
+      type: object
+      required:
+        - status
+        - workerId
+        - workerName
+        - siteId
+        - deviceId
+        - confidence
+        - authTier
+      properties:
+        status:
+          type: string
+          enum: [awaiting_confirmation, confirmed, rejected]
+        workerId:
+          type: string
+          format: uuid
+        workerName:
+          type: string
+        thumbnailBase64:
+          type: string
+        siteId:
+          type: string
+          format: uuid
+        deviceId:
+          type: string
+          format: uuid
+        confidence:
+          type: number
+        authTier:
+          type: string
+          enum: [high, medium, low]
+        requiresSupervisorFlag:
+          type: boolean
+
   securitySchemes:
     AdminJWT:
       type: http
@@ -199,6 +238,90 @@ paths:
       responses:
         '200':
           description: Device revoked
+
+  /registration-requests:
+    post:
+      summary: Insert field registration request (Supabase dev)
+      description: |
+        Field supervisor app queues `pending_registration` locally, then sync inserts
+        via PostgREST (`registrationRepository.insertRegistrationRequest`).
+        Maps to `pushPendingRegistrationOutbox` — not a standalone Edge route in dev.
+      security:
+        - SupervisorJWT: []
+        - DeviceJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [worker_name, role, site_id]
+              properties:
+                worker_name:
+                  type: string
+                role:
+                  type: string
+                site_id:
+                  type: string
+                  format: uuid
+                aadhaar_ref_hash:
+                  type: string
+                submitted_by:
+                  type: string
+                  format: uuid
+                status:
+                  type: string
+                  enum: [pending_registration, pending]
+      responses:
+        '201':
+          description: Registration request created
+
+  /attendance/batch:
+    post:
+      summary: Batch upload attendance records (Supabase dev)
+      description: |
+        Device JWT inserts rows into `attendance_records` with `sync_status: pending`.
+        Client maps to `AttendanceRecord` / `attendanceOutboxSync.pushPendingAttendanceOutbox`.
+        Production target is DataLink 3.0 batch ingest (config swap only).
+      security:
+        - DeviceJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                records:
+                  type: array
+                  items:
+                    type: object
+                    required: [worker_id, site_id, device_id, auth_timestamp]
+                    properties:
+                      worker_id:
+                        type: string
+                        format: uuid
+                      site_id:
+                        type: string
+                        format: uuid
+                      device_id:
+                        type: string
+                        format: uuid
+                      supervisor_id:
+                        type: string
+                        format: uuid
+                      supervisor_confirmed:
+                        type: boolean
+                      confidence_score:
+                        type: number
+                      auth_tier:
+                        type: string
+                        enum: [high, medium, low]
+                      liveness_passed:
+                        type: boolean
+      responses:
+        '201':
+          description: Records inserted
 
   /push-to-integration:
     post:

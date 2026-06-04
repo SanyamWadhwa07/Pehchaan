@@ -13,6 +13,7 @@ import type { StackScreenProps } from '@react-navigation/stack';
 import type { AuthStackParamList } from '@/navigation/AuthStack';
 import { qualityCheckTranslationKey } from '@/lib/qualityI18n';
 import { useCameraPermission } from '@/hooks/useCameraPermission';
+import { useCameraSession } from '@/hooks/useCameraSession';
 import { checkFaceQuality, STUB_FACE_BOX } from '@/services/faceRecognition';
 import { FaceOverlay } from '@/screens/auth/components/FaceOverlay';
 import { colors } from '@/theme/colors';
@@ -28,6 +29,9 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
   const { hasPermission, isRequesting } = useCameraPermission();
   const [quality, setQuality] = useState<QualityCheck | null>(null);
   const [polling, setPolling] = useState(true);
+  const { isActive, onCameraError } = useCameraSession();
+  const [forceInactive, setForceInactive] = useState(false);
+  const cameraActive = isActive && !forceInactive;
 
   const pollQuality = useCallback(async () => {
     const result = await checkFaceQuality();
@@ -35,7 +39,7 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
   }, []);
 
   useEffect(() => {
-    if (!hasPermission || !polling) {
+    if (!hasPermission || !polling || !cameraActive) {
       return;
     }
     void pollQuality();
@@ -43,7 +47,38 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
       void pollQuality();
     }, POLL_MS);
     return () => clearInterval(id);
-  }, [hasPermission, polling, pollQuality]);
+  }, [
+    hasPermission,
+    polling,
+    cameraActive,
+    pollQuality,
+  ]);
+
+  // Stable pass ~1s before advancing (avoids stub flicker).
+  useEffect(() => {
+    if (!quality?.passed || !cameraActive) {
+      return;
+    }
+    const id = setTimeout(() => {
+      setPolling(false);
+      setForceInactive(true);
+      navigation.navigate('Recognition');
+    }, 1000);
+    return () => clearTimeout(id);
+  }, [quality?.passed, cameraActive, navigation]);
+
+  useEffect(() => {
+    const beforeRemoveUnsub = navigation.addListener('beforeRemove', () => {
+      setForceInactive(true);
+    });
+    const focusUnsub = navigation.addListener('focus', () => {
+      setForceInactive(false);
+    });
+    return () => {
+      beforeRemoveUnsub();
+      focusUnsub();
+    };
+  }, [navigation]);
 
   const onRetry = () => {
     setPolling(true);
@@ -53,7 +88,7 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
   if (isRequesting) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} size="large" />
+        <ActivityIndicator color={colors.accent} size="large" />
         <Text style={styles.muted}>{t('common.loading')}</Text>
       </View>
     );
@@ -71,7 +106,8 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
   if (!device) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.message}>{t('camera.noDevice')}</Text>
+        <ActivityIndicator color={colors.accent} size="large" />
+        <Text style={styles.muted}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -85,7 +121,12 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <View style={styles.root}>
-      <Camera style={StyleSheet.absoluteFill} device={device} isActive={polling} />
+      <Camera
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive={cameraActive}
+        onError={onCameraError}
+      />
       <FaceOverlay box={STUB_FACE_BOX} passed={quality?.passed ?? false} />
 
       <View style={styles.topBar}>
@@ -108,7 +149,7 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
             {t(feedbackKey)}
           </Text>
         ) : (
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={colors.accent} />
         )}
 
         {!quality?.passed && quality != null && (
@@ -138,15 +179,24 @@ const styles = StyleSheet.create({
     top: 48,
     right: 16,
     zIndex: 2,
+    flexDirection: 'row',
+    gap: 8,
   },
   settingsButton: {
-    backgroundColor: colors.overlay,
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 2,
+    shadowColor: colors.text,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   settingsLabel: {
-    color: colors.primaryText,
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -157,10 +207,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     padding: 20,
     paddingBottom: 36,
-    backgroundColor: colors.overlay,
+    backgroundColor: colors.panelOnCamera,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderTopWidth: 1,
+    borderColor: colors.border,
   },
   title: {
-    color: colors.primaryText,
+    color: colors.text,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 8,
@@ -168,6 +222,7 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 16,
     lineHeight: 22,
+    color: colors.textSecondary,
   },
   pass: {
     color: colors.success,
@@ -182,13 +237,13 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: 16,
     alignSelf: 'flex-start',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
   },
   retryText: {
-    color: colors.primaryText,
+    color: colors.onAccent,
     fontWeight: '600',
   },
 });
