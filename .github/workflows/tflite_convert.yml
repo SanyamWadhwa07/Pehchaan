@@ -55,6 +55,7 @@ jobs:
                   input_onnx_file_path=str(ONNX_SRC),
                   output_folder_path=tmp,
                   non_verbose=True,
+                  batch_size=1,
               )
 
               import tensorflow as tf
@@ -69,7 +70,8 @@ jobs:
 
               def rep_dataset():
                   for _ in range(200):
-                      yield {input_key: rng.uniform(-1, 1, (1, 3, 112, 112)).astype(np.float32)}
+                      # onnx2tf transposes NCHW -> NHWC automatically; feed NHWC here
+                      yield {input_key: rng.uniform(-1, 1, (1, 112, 112, 3)).astype(np.float32)}
 
               print("Step 2: TF SavedModel -> TFLite INT8 (full integer quantisation)...")
               converter = tf.lite.TFLiteConverter.from_saved_model(tmp)
