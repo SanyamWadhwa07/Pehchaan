@@ -1,11 +1,11 @@
-import { supabase } from '@/lib/supabase';
+import { requireSupabase } from '@/lib/supabase';
 import type { DeviceRow } from '@/lib/db/rows';
 
 const DEV_COLUMNS =
   'id, supervisor_id, site_id, platform, app_version, revoked, last_sync_at, trust_score';
 
 export async function fetchDevicesBySite(siteId: string): Promise<DeviceRow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('devices')
     .select(DEV_COLUMNS)
     .eq('site_id', siteId)
@@ -18,7 +18,7 @@ export async function fetchDevicesBySite(siteId: string): Promise<DeviceRow[]> {
 }
 
 export async function fetchDeviceById(deviceId: string): Promise<DeviceRow | null> {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('devices')
     .select(DEV_COLUMNS)
     .eq('id', deviceId)

@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { requireSupabase } from '@/lib/supabase';
 import type { WorkerRow } from '@/lib/db/rows';
 
 const WORKER_COLUMNS =
@@ -8,7 +8,7 @@ const WORKER_COLUMNS =
  * Workers visible to the current JWT (RLS). Excludes `embedding_encrypted` (not selectable by anon).
  */
 export async function fetchWorkersBySite(siteId: string): Promise<WorkerRow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('workers')
     .select(WORKER_COLUMNS)
     .eq('site_id', siteId)
@@ -21,7 +21,7 @@ export async function fetchWorkersBySite(siteId: string): Promise<WorkerRow[]> {
 }
 
 export async function fetchWorkerById(workerId: string): Promise<WorkerRow | null> {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('workers')
     .select(WORKER_COLUMNS)
     .eq('id', workerId)

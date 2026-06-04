@@ -2,10 +2,14 @@
  * Typed access to app configuration / env vars.
  * Import from here — do not read Config or process.env in screens or services.
  *
- * Values come from root `.env` via react-native-config (Android/iOS build).
+ * `.env` must live at the **project root** (same directory as `package.json`).
+ * Values are baked in at **native build time** via react-native-config — Metro reload
+ * alone is not enough after you change `.env`.
  */
 
-import Config from 'react-native-config';
+import { loadAppConfig } from '@/config/loadConfig';
+
+const Config = loadAppConfig();
 
 export const integrationEnv = {
   apiKey: Config.INTEGRATION_API_KEY ?? '',

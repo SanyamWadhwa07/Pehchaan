@@ -52,12 +52,20 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
         />
 
         {__DEV__ ? (
-          <Button
-            label={t('enrollment.devEntry')}
-            variant="secondary"
-            onPress={() => navigation.getParent()?.navigate('Enrollment')}
-            style={styles.secondaryAction}
-          />
+          <>
+            <Button
+              label={t('enrollment.devEntry')}
+              variant="secondary"
+              onPress={() => navigation.getParent()?.navigate('Enrollment')}
+              style={styles.secondaryAction}
+            />
+            <Button
+              label={t('registration.devEntry')}
+              variant="secondary"
+              onPress={() => navigation.getParent()?.navigate('Registration')}
+              style={styles.secondaryAction}
+            />
+          </>
         ) : null}
       </View>
 

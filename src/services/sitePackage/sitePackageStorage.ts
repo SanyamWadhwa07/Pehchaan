@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { requireSupabase } from '@/lib/supabase';
 
 /** Must match Supabase Storage bucket id + migration `003`. */
 export const SITE_PACKAGES_BUCKET = 'site-packages';
@@ -14,7 +14,7 @@ export async function downloadSitePackageObject(
   fileName: string,
 ): Promise<ArrayBuffer> {
   const path = sitePackageObjectPath(siteId, fileName);
-  const { data, error } = await supabase.storage
+  const { data, error } = await requireSupabase().storage
     .from(SITE_PACKAGES_BUCKET)
     .download(path);
 
@@ -31,7 +31,7 @@ export async function createSignedSitePackageUrl(
   expiresInSeconds = 3600,
 ): Promise<string> {
   const path = sitePackageObjectPath(siteId, fileName);
-  const { data, error } = await supabase.storage
+  const { data, error } = await requireSupabase().storage
     .from(SITE_PACKAGES_BUCKET)
     .createSignedUrl(path, expiresInSeconds);
 
@@ -52,7 +52,7 @@ export async function uploadSitePackageObject(
   options?: { contentType?: string; upsert?: boolean },
 ): Promise<void> {
   const path = sitePackageObjectPath(siteId, fileName);
-  const { error } = await supabase.storage.from(SITE_PACKAGES_BUCKET).upload(path, body, {
+  const { error } = await requireSupabase().storage.from(SITE_PACKAGES_BUCKET).upload(path, body, {
     contentType: options?.contentType ?? 'application/zip',
     upsert: options?.upsert ?? false,
   });

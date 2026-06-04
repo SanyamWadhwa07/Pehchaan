@@ -143,6 +143,23 @@ export interface LivenessSession {
   totalDurationMs: number;
 }
 
+/** Client-side session between auth flow and supervisor confirmation (Zustand). */
+export type PendingAuthStatus = 'awaiting_confirmation' | 'confirmed' | 'rejected';
+
+export interface PendingAuthSession {
+  status: PendingAuthStatus;
+  workerId: UUID;
+  workerName: string;
+  thumbnailBase64?: string;
+  siteId: UUID;
+  deviceId: UUID;
+  confidence: ConfidenceScore;
+  authTier: AuthTier;
+  livenessSession: LivenessSession;
+  requiresSupervisorFlag: boolean;
+  createdAt: ISOTimestamp;
+}
+
 // ---------------------------------------------------------------------------
 // Supervisor confirmation  (Maulik — supervisor screens)
 // ---------------------------------------------------------------------------

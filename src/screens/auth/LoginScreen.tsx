@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { Screen } from '@/components/Screen';
+import { supabase } from '@/lib/supabase';
 import { login } from '@/services/auth/authService';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
@@ -26,6 +27,10 @@ export function LoginScreen(): React.JSX.Element {
 
   const onSubmit = async () => {
     setError(null);
+    if (!supabase) {
+      setError(t('login.configMissing'));
+      return;
+    }
     const trimmed = email.trim();
     if (!trimmed || !password) {
       setError(t('login.validationRequired'));

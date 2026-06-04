@@ -31,6 +31,11 @@ export function subscribeAuthToStore(): void {
   }
   authListenerSubscribed = true;
 
+  if (!supabase) {
+    useAuthStore.getState().setLoading(false);
+    return;
+  }
+
   void supabase.auth.getSession().then(({ data }) => {
     useAuthStore.getState().setSession(data.session ?? null);
     useAuthStore.getState().setLoading(false);

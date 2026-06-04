@@ -54,6 +54,19 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
     pollQuality,
   ]);
 
+  // Stable pass ~1s before advancing (avoids stub flicker).
+  useEffect(() => {
+    if (!quality?.passed || !cameraActive) {
+      return;
+    }
+    const id = setTimeout(() => {
+      setPolling(false);
+      setForceInactive(true);
+      navigation.navigate('Recognition');
+    }, 1000);
+    return () => clearTimeout(id);
+  }, [quality?.passed, cameraActive, navigation]);
+
   useEffect(() => {
     const beforeRemoveUnsub = navigation.addListener('beforeRemove', () => {
       setForceInactive(true);

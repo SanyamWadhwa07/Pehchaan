@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { requireSupabase } from '@/lib/supabase';
 import type { AttendanceRecordRow } from '@/lib/db/rows';
 
 const ATT_COLUMNS =
@@ -7,7 +7,7 @@ const ATT_COLUMNS =
 export async function insertAttendanceRecord(
   row: Omit<AttendanceRecordRow, 'id'> & { id?: string },
 ): Promise<AttendanceRecordRow> {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('attendance_records')
     .insert(row)
     .select(ATT_COLUMNS)
@@ -26,7 +26,7 @@ export async function insertAttendanceRecordsBatch(
   if (rows.length === 0) {
     return [];
   }
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('attendance_records')
     .insert(rows)
     .select(ATT_COLUMNS);
@@ -41,7 +41,7 @@ export async function fetchAttendanceForSite(
   siteId: string,
   limit = 50,
 ): Promise<AttendanceRecordRow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('attendance_records')
     .select(ATT_COLUMNS)
     .eq('site_id', siteId)

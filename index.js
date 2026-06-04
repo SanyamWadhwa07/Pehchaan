@@ -2,6 +2,8 @@
  * @format
  */
 
+// Must run before @supabase/supabase-js (Hermes has no URL.protocol).
+import 'react-native-url-polyfill/auto';
 import 'react-native-gesture-handler';
 import {AppRegistry} from 'react-native';
 import App from './App';
