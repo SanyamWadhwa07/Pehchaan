@@ -1,4 +1,4 @@
-import type { AuthTier, ConfidenceScore } from '@/types';
+import type {AuthTier, ConfidenceScore} from '@/types';
 import {
   CONFIDENCE_THRESHOLD_HIGH,
   CONFIDENCE_THRESHOLD_MEDIUM,

@@ -1,9 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import {StyleSheet, Text, View} from 'react-native';
 
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
 
 type StepIndicatorProps = {
   currentStep: number;
@@ -20,7 +20,7 @@ export function StepIndicator({
     <View style={styles.wrap}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.dots}>
-        {Array.from({ length: totalSteps }, (_, i) => (
+        {Array.from({length: totalSteps}, (_, i) => (
           <View
             key={i}
             style={[styles.dot, i < currentStep ? styles.dotActive : null]}

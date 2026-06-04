@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -6,37 +6,52 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Camera, useCameraDevice } from 'react-native-vision-camera';
-import { useTranslation } from 'react-i18next';
-import type { StackScreenProps } from '@react-navigation/stack';
+import {
+  Camera,
+  useCameraDevice,
+  type Camera as CameraType,
+} from 'react-native-vision-camera';
+import {useTranslation} from 'react-i18next';
+import type {StackScreenProps} from '@react-navigation/stack';
 
-import type { AuthStackParamList } from '@/navigation/AuthStack';
-import { qualityCheckTranslationKey } from '@/lib/qualityI18n';
-import { useCameraPermission } from '@/hooks/useCameraPermission';
-import { useCameraSession } from '@/hooks/useCameraSession';
-import { checkFaceQuality, STUB_FACE_BOX } from '@/services/faceRecognition';
-import { FaceOverlay } from '@/screens/auth/components/FaceOverlay';
-import { colors } from '@/theme/colors';
-import type { QualityCheck } from '@/types';
+import type {AuthStackParamList} from '@/navigation/AuthStack';
+import {qualityCheckTranslationKey} from '@/lib/qualityI18n';
+import {useCameraPermission} from '@/hooks/useCameraPermission';
+import {useCameraSession} from '@/hooks/useCameraSession';
+import {captureFrameBase64, useCaptureInFlight} from '@/lib/captureFrame';
+import {checkFaceQuality, STUB_FACE_BOX} from '@/services/faceRecognition';
+import {FaceOverlay} from '@/screens/auth/components/FaceOverlay';
+import {colors} from '@/theme/colors';
+import type {QualityCheck} from '@/types';
 
 type Props = StackScreenProps<AuthStackParamList, 'QualityCheck'>;
 
 const POLL_MS = 500;
 
-export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
-  const { t } = useTranslation();
+export function QualityCheckScreen({navigation}: Props): React.JSX.Element {
+  const {t} = useTranslation();
   const device = useCameraDevice('front');
-  const { hasPermission, isRequesting } = useCameraPermission();
+  const {hasPermission, isRequesting} = useCameraPermission();
   const [quality, setQuality] = useState<QualityCheck | null>(null);
   const [polling, setPolling] = useState(true);
-  const { isActive, onCameraError } = useCameraSession();
+  const {isActive, onCameraError} = useCameraSession();
   const [forceInactive, setForceInactive] = useState(false);
   const cameraActive = isActive && !forceInactive;
+  const cameraRef = useRef<CameraType>(null);
+  const {tryAcquire, release} = useCaptureInFlight();
 
   const pollQuality = useCallback(async () => {
-    const result = await checkFaceQuality();
-    setQuality(result);
-  }, []);
+    if (!tryAcquire()) {
+      return;
+    }
+    try {
+      const frame = cameraActive ? await captureFrameBase64(cameraRef) : null;
+      const result = await checkFaceQuality(frame ?? undefined);
+      setQuality(result);
+    } finally {
+      release();
+    }
+  }, [cameraActive, tryAcquire, release]);
 
   useEffect(() => {
     if (!hasPermission || !polling || !cameraActive) {
@@ -47,12 +62,7 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
       void pollQuality();
     }, POLL_MS);
     return () => clearInterval(id);
-  }, [
-    hasPermission,
-    polling,
-    cameraActive,
-    pollQuality,
-  ]);
+  }, [hasPermission, polling, cameraActive, pollQuality]);
 
   // Stable pass ~1s before advancing (avoids stub flicker).
   useEffect(() => {
@@ -116,15 +126,17 @@ export function QualityCheckScreen({ navigation }: Props): React.JSX.Element {
     quality?.passed === true
       ? 'qualityCheck.pass'
       : quality?.failReason
-        ? qualityCheckTranslationKey(quality.failReason)
-        : null;
+      ? qualityCheckTranslationKey(quality.failReason)
+      : null;
 
   return (
     <View style={styles.root}>
       <Camera
+        ref={cameraRef}
         style={StyleSheet.absoluteFill}
         device={device}
         isActive={cameraActive}
+        photo
         onError={onCameraError}
       />
       <FaceOverlay box={STUB_FACE_BOX} passed={quality?.passed ?? false} />
@@ -191,7 +203,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     elevation: 2,
     shadowColor: colors.text,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },

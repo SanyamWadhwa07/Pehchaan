@@ -1,6 +1,6 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, {createContext, useCallback, useContext, useState} from 'react';
 
-import type { AppLanguage } from '@/i18n';
+import type {AppLanguage} from '@/i18n';
 
 export type FieldRegistrationState = {
   workerName: string;
@@ -38,7 +38,7 @@ export function RegistrationProvider({
   );
 
   const updateState = useCallback((patch: Partial<FieldRegistrationState>) => {
-    setState((s) => ({ ...s, ...patch }));
+    setState(s => ({...s, ...patch}));
   }, []);
 
   const reset = useCallback(() => {
@@ -46,7 +46,7 @@ export function RegistrationProvider({
   }, []);
 
   return (
-    <RegistrationContext.Provider value={{ state, updateState, reset }}>
+    <RegistrationContext.Provider value={{state, updateState, reset}}>
       {children}
     </RegistrationContext.Provider>
   );
@@ -55,7 +55,9 @@ export function RegistrationProvider({
 export function useFieldRegistration(): ContextValue {
   const ctx = useContext(RegistrationContext);
   if (!ctx) {
-    throw new Error('useFieldRegistration must be used within RegistrationProvider');
+    throw new Error(
+      'useFieldRegistration must be used within RegistrationProvider',
+    );
   }
   return ctx;
 }

@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import React, {useEffect, useRef} from 'react';
+import {Animated, StyleSheet, Text, View} from 'react-native';
 
-import { colors } from '@/theme/colors';
-import type { LivenessChallenge } from '@/types';
+import {colors} from '@/theme/colors';
+import type {LivenessChallenge} from '@/types';
 
 type Props = {
   challenge: LivenessChallenge;
@@ -15,14 +15,25 @@ const ICON: Record<LivenessChallenge, string> = {
   turn_right: '↪',
 };
 
-export function LivenessGuideCard({ challenge, instruction }: Props): React.JSX.Element {
+export function LivenessGuideCard({
+  challenge,
+  instruction,
+}: Props): React.JSX.Element {
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.08, duration: 600, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(pulse, {
+          toValue: 1.08,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
       ]),
     );
     loop.start();
@@ -31,7 +42,7 @@ export function LivenessGuideCard({ challenge, instruction }: Props): React.JSX.
 
   return (
     <View style={styles.card}>
-      <Animated.Text style={[styles.icon, { transform: [{ scale: pulse }] }]}>
+      <Animated.Text style={[styles.icon, {transform: [{scale: pulse}]}]}>
         {ICON[challenge]}
       </Animated.Text>
       <Text style={styles.instruction}>{instruction}</Text>

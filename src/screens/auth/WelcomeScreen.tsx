@@ -1,20 +1,20 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import type { StackScreenProps } from '@react-navigation/stack';
+import React, {useState} from 'react';
+import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {useTranslation} from 'react-i18next';
+import type {StackScreenProps} from '@react-navigation/stack';
 
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { ensureCameraPermission } from '@/hooks/useCameraPermission';
-import type { AuthStackParamList } from '@/navigation/AuthStack';
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
+import {Button} from '@/components/Button';
+import {Screen} from '@/components/Screen';
+import {ensureCameraPermission} from '@/hooks/useCameraPermission';
+import type {AuthStackParamList} from '@/navigation/AuthStack';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
 
 type Props = StackScreenProps<AuthStackParamList, 'Welcome'>;
 
-export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
-  const { t } = useTranslation();
+export function WelcomeScreen({navigation}: Props): React.JSX.Element {
+  const {t} = useTranslation();
   const [starting, setStarting] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
 

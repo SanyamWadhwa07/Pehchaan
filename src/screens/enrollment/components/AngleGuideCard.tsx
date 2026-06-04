@@ -1,11 +1,11 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import {StyleSheet, Text, View} from 'react-native';
+import {useTranslation} from 'react-i18next';
 
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
-import type { CaptureAngle } from '@/types';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
+import type {CaptureAngle} from '@/types';
 
 type AngleGuideCardProps = {
   angle: CaptureAngle;
@@ -18,7 +18,7 @@ export function AngleGuideCard({
   optional = false,
   captured = false,
 }: AngleGuideCardProps): React.JSX.Element {
-  const { t } = useTranslation();
+  const {t} = useTranslation();
 
   return (
     <View style={[styles.card, captured && styles.cardCaptured]}>

@@ -1,4 +1,4 @@
-import { requireSupabase } from '@/lib/supabase';
+import {requireSupabase} from '@/lib/supabase';
 
 export async function login(email: string, password: string) {
   return requireSupabase().auth.signInWithPassword({

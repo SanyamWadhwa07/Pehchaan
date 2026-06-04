@@ -1,7 +1,7 @@
-import { database } from '@/db';
-import type { RegistrationRequestModel } from '@/db/models/RegistrationRequestModel';
-import { DEV_TEST_SITE_ID } from '@/constants/dev';
-import type { CaptureAngle } from '@/types';
+import {database} from '@/db';
+import type {RegistrationRequestModel} from '@/db/models/RegistrationRequestModel';
+import {DEV_TEST_SITE_ID} from '@/constants/dev';
+import type {CaptureAngle} from '@/types';
 
 export type FieldRegistrationInput = {
   workerName: string;
@@ -31,7 +31,7 @@ export async function queueFieldRegistration(
 
   let created: RegistrationRequestModel;
   await database.write(async () => {
-    created = await collection.create((rec) => {
+    created = await collection.create(rec => {
       rec.workerName = input.workerName;
       rec.role = input.role;
       rec.aadhaarRefHash = input.aadhaarRefHash;

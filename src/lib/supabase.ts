@@ -1,13 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import {createClient, type SupabaseClient} from '@supabase/supabase-js';
 
-import { supabaseEnv } from '@/config/env';
+import {supabaseEnv} from '@/config/env';
 
 const CONFIG_HINT =
   'Add .env at the project root (same folder as package.json), then rebuild: cd android && ./gradlew clean && cd .. && npm run android';
 
 function createSupabaseClient(): SupabaseClient | null {
-  const { url, anonKey } = supabaseEnv;
+  const {url, anonKey} = supabaseEnv;
   if (!url?.trim() || !anonKey?.trim()) {
     return null;
   }

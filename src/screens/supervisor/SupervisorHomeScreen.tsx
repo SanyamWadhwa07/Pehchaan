@@ -1,22 +1,22 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import type { StackScreenProps } from '@react-navigation/stack';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
+import {useTranslation} from 'react-i18next';
+import type {StackScreenProps} from '@react-navigation/stack';
 
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { DEV_TEST_SITE_ID } from '@/constants/dev';
-import type { SupervisorStackParamList } from '@/navigation/SupervisorStack';
-import { usePendingAuthStore } from '@/stores/pendingAuthStore';
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
+import {Button} from '@/components/Button';
+import {Screen} from '@/components/Screen';
+import {DEV_TEST_SITE_ID} from '@/constants/dev';
+import type {SupervisorStackParamList} from '@/navigation/SupervisorStack';
+import {usePendingAuthStore} from '@/stores/pendingAuthStore';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
 
 type Props = StackScreenProps<SupervisorStackParamList, 'SupervisorHome'>;
 
-export function SupervisorHomeScreen({ navigation }: Props): React.JSX.Element {
-  const { t } = useTranslation();
-  const pending = usePendingAuthStore((s) => s.session);
+export function SupervisorHomeScreen({navigation}: Props): React.JSX.Element {
+  const {t} = useTranslation();
+  const pending = usePendingAuthStore(s => s.session);
   const awaiting = pending?.status === 'awaiting_confirmation';
 
   return (
@@ -27,8 +27,12 @@ export function SupervisorHomeScreen({ navigation }: Props): React.JSX.Element {
         <Pressable
           style={styles.banner}
           onPress={() => navigation.navigate('SupervisorConfirmation')}>
-          <Text style={styles.bannerTitle}>{t('supervisorDashboard.pendingAuth')}</Text>
-          <Text style={styles.bannerCta}>{t('supervisorDashboard.reviewNow')}</Text>
+          <Text style={styles.bannerTitle}>
+            {t('supervisorDashboard.pendingAuth')}
+          </Text>
+          <Text style={styles.bannerCta}>
+            {t('supervisorDashboard.reviewNow')}
+          </Text>
         </Pressable>
       ) : null}
 
@@ -39,7 +43,9 @@ export function SupervisorHomeScreen({ navigation }: Props): React.JSX.Element {
 
       <View style={styles.card}>
         <Text style={styles.label}>{t('supervisorDashboard.syncStatus')}</Text>
-        <Text style={styles.value}>{t('supervisorDashboard.pendingSync', { count: 0 })}</Text>
+        <Text style={styles.value}>
+          {t('supervisorDashboard.pendingSync', {count: 0})}
+        </Text>
       </View>
 
       <Button
@@ -61,15 +67,20 @@ export function SupervisorHomeScreen({ navigation }: Props): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  title: { ...typography.heading, marginBottom: spacing.lg },
+  title: {...typography.heading, marginBottom: spacing.lg},
   banner: {
     backgroundColor: colors.primary,
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
-  bannerTitle: { color: colors.onPrimary, fontWeight: '700', fontSize: 16 },
-  bannerCta: { color: colors.onPrimary, marginTop: 4, fontSize: 14, opacity: 0.9 },
+  bannerTitle: {color: colors.onPrimary, fontWeight: '700', fontSize: 16},
+  bannerCta: {
+    color: colors.onPrimary,
+    marginTop: 4,
+    fontSize: 14,
+    opacity: 0.9,
+  },
   card: {
     backgroundColor: colors.surface,
     borderRadius: 12,
@@ -78,7 +89,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  label: { ...typography.label, marginBottom: 4 },
-  value: { ...typography.body },
-  cta: { marginTop: spacing.md },
+  label: {...typography.label, marginBottom: 4},
+  value: {...typography.body},
+  cta: {marginTop: spacing.md},
 });

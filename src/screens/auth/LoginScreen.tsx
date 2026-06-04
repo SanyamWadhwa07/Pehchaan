@@ -1,25 +1,24 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
-  View,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import {useTranslation} from 'react-i18next';
 
-import { Button } from '@/components/Button';
-import { TextField } from '@/components/TextField';
-import { Screen } from '@/components/Screen';
-import { supabase } from '@/lib/supabase';
-import { login } from '@/services/auth/authService';
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
+import {Button} from '@/components/Button';
+import {TextField} from '@/components/TextField';
+import {Screen} from '@/components/Screen';
+import {supabase} from '@/lib/supabase';
+import {login} from '@/services/auth/authService';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
 
 export function LoginScreen(): React.JSX.Element {
-  const { t } = useTranslation();
+  const {t} = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -38,7 +37,7 @@ export function LoginScreen(): React.JSX.Element {
     }
     setSubmitting(true);
     try {
-      const { error: signError } = await login(trimmed, password);
+      const {error: signError} = await login(trimmed, password);
       if (signError) {
         setError(signError.message);
         return;
@@ -93,7 +92,7 @@ export function LoginScreen(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  flex: {flex: 1},
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',

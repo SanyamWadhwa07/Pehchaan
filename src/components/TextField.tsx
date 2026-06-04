@@ -1,9 +1,15 @@
 import React from 'react';
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+} from 'react-native';
 
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
 
 type TextFieldProps = TextInputProps & {
   label: string;

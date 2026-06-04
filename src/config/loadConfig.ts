@@ -1,8 +1,10 @@
-import { NativeModules, TurboModuleRegistry } from 'react-native';
+import {NativeModules, TurboModuleRegistry} from 'react-native';
 
 type EnvMap = Record<string, string | undefined>;
 
-function envFromNativeModule(mod: Record<string, unknown> | null | undefined): EnvMap {
+function envFromNativeModule(
+  mod: Record<string, unknown> | null | undefined,
+): EnvMap {
   if (!mod || typeof mod !== 'object') {
     return {};
   }
@@ -23,7 +25,9 @@ function envFromNativeModule(mod: Record<string, unknown> | null | undefined): E
  */
 export function loadAppConfig(): EnvMap {
   // 1.5.x — constants on the native module (RN 0.73 + manual Android link).
-  const legacyModule = NativeModules.RNCConfigModule as Record<string, unknown> | undefined;
+  const legacyModule = NativeModules.RNCConfigModule as
+    | Record<string, unknown>
+    | undefined;
   const fromLegacy = envFromNativeModule(legacyModule);
   if (Object.keys(fromLegacy).length > 0) {
     return fromLegacy;
@@ -31,7 +35,7 @@ export function loadAppConfig(): EnvMap {
 
   try {
     const turbo = TurboModuleRegistry.get('RNCConfigModule') as {
-      getConfig?: () => { config?: EnvMap };
+      getConfig?: () => {config?: EnvMap};
     } | null;
     if (turbo?.getConfig) {
       const wrapped = turbo.getConfig();
@@ -42,12 +46,12 @@ export function loadAppConfig(): EnvMap {
   }
 
   const legacyGetConfig = legacyModule as {
-    getConfig?: () => { config?: EnvMap } | EnvMap;
+    getConfig?: () => {config?: EnvMap} | EnvMap;
   } | null;
   if (legacyGetConfig?.getConfig) {
     const result = legacyGetConfig.getConfig();
     if (result && typeof result === 'object' && 'config' in result) {
-      return (result as { config?: EnvMap }).config ?? {};
+      return (result as {config?: EnvMap}).config ?? {};
     }
     return envFromNativeModule(result as Record<string, unknown>);
   }

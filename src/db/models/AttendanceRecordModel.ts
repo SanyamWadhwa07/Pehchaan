@@ -1,5 +1,5 @@
-import { Model } from '@nozbe/watermelondb';
-import { field } from '@nozbe/watermelondb/decorators';
+import {Model} from '@nozbe/watermelondb';
+import {field} from '@nozbe/watermelondb/decorators';
 
 /** Offline attendance queue row — maps to Postgres `attendance_records` on sync. */
 export class AttendanceRecordModel extends Model {

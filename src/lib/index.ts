@@ -11,5 +11,5 @@ export {
   registrationToRow,
   workerFromRow,
 } from '@/lib/db/mappers';
-export { livenessInstructionKey } from '@/lib/livenessI18n';
-export { qualityCheckTranslationKey } from '@/lib/qualityI18n';
+export {livenessInstructionKey} from '@/lib/livenessI18n';
+export {qualityCheckTranslationKey} from '@/lib/qualityI18n';

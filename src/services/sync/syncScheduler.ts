@@ -1,14 +1,14 @@
-import { useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
-import type { AppStateStatus } from 'react-native';
-import type { Database } from '@nozbe/watermelondb';
+import {useEffect, useRef} from 'react';
+import {AppState} from 'react-native';
+import type {AppStateStatus} from 'react-native';
+import type {Database} from '@nozbe/watermelondb';
 
-import { pushPendingAttendanceOutbox } from '@/services/sync/attendanceOutboxSync';
-import { pushPendingRegistrationOutbox } from '@/services/sync/registrationOutboxSync';
+import {pushPendingAttendanceOutbox} from '@/services/sync/attendanceOutboxSync';
+import {pushPendingRegistrationOutbox} from '@/services/sync/registrationOutboxSync';
 
 export type SyncResult = {
-  attendance: { uploaded: number; errors: string[]; deadLettered: number };
-  registration: { uploaded: number; errors: string[]; deadLettered: number };
+  attendance: {uploaded: number; errors: string[]; deadLettered: number};
+  registration: {uploaded: number; errors: string[]; deadLettered: number};
 };
 
 export type SyncSchedulerConfig = {
@@ -37,11 +37,13 @@ export type SyncSchedulerConfig = {
  *   3. Imperative call to `runSync()`
  */
 export function createSyncScheduler(config: SyncSchedulerConfig) {
-  const { database, intervalMs = 5 * 60_000, onSyncComplete, onError } = config;
+  const {database, intervalMs = 5 * 60_000, onSyncComplete, onError} = config;
   let running = false;
 
   const runSync = async (): Promise<SyncResult | null> => {
-    if (running) return null;
+    if (running) {
+      return null;
+    }
     running = true;
     try {
       const [attSettled, regSettled] = await Promise.allSettled([
@@ -52,14 +54,28 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
       const attendance =
         attSettled.status === 'fulfilled'
           ? attSettled.value
-          : { uploaded: 0, errors: [(attSettled as PromiseRejectedResult).reason?.message ?? 'unknown'], deadLettered: 0 };
+          : {
+              uploaded: 0,
+              errors: [
+                (attSettled as PromiseRejectedResult).reason?.message ??
+                  'unknown',
+              ],
+              deadLettered: 0,
+            };
 
       const registration =
         regSettled.status === 'fulfilled'
           ? regSettled.value
-          : { uploaded: 0, errors: [(regSettled as PromiseRejectedResult).reason?.message ?? 'unknown'], deadLettered: 0 };
+          : {
+              uploaded: 0,
+              errors: [
+                (regSettled as PromiseRejectedResult).reason?.message ??
+                  'unknown',
+              ],
+              deadLettered: 0,
+            };
 
-      const result: SyncResult = { attendance, registration };
+      const result: SyncResult = {attendance, registration};
       onSyncComplete?.(result);
       return result;
     } catch (err) {
@@ -91,11 +107,13 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
 
     return () => {
       sub.remove();
-      if (timer !== null) clearInterval(timer);
+      if (timer !== null) {
+        clearInterval(timer);
+      }
     };
   };
 
-  return { start, runSync };
+  return {start, runSync};
 }
 
 /**
@@ -108,8 +126,12 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
  * useSyncScheduler({ database, intervalMs: 5 * 60_000 });
  * ```
  */
-export function useSyncScheduler(config: SyncSchedulerConfig): { runSync: () => Promise<SyncResult | null> } {
-  const schedulerRef = useRef<ReturnType<typeof createSyncScheduler> | null>(null);
+export function useSyncScheduler(config: SyncSchedulerConfig): {
+  runSync: () => Promise<SyncResult | null>;
+} {
+  const schedulerRef = useRef<ReturnType<typeof createSyncScheduler> | null>(
+    null,
+  );
 
   useEffect(() => {
     const scheduler = createSyncScheduler(config);

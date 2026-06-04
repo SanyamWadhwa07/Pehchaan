@@ -1,26 +1,26 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import type { StackScreenProps } from '@react-navigation/stack';
+import React, {useState} from 'react';
+import {StyleSheet, Text, View} from 'react-native';
+import {useTranslation} from 'react-i18next';
+import type {StackScreenProps} from '@react-navigation/stack';
 
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import type { RegistrationStackParamList } from '@/navigation/RegistrationStack';
-import { useFieldRegistration } from '@/screens/registration/RegistrationContext';
-import { useAuthStore } from '@/stores/authStore';
-import { queueFieldRegistration } from '@/services/registration/queueFieldRegistration';
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
+import {Button} from '@/components/Button';
+import {Screen} from '@/components/Screen';
+import type {RegistrationStackParamList} from '@/navigation/RegistrationStack';
+import {useFieldRegistration} from '@/screens/registration/RegistrationContext';
+import {useAuthStore} from '@/stores/authStore';
+import {queueFieldRegistration} from '@/services/registration/queueFieldRegistration';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
 
 type Props = StackScreenProps<RegistrationStackParamList, 'RegistrationQueued'>;
 
 export function RegistrationQueuedScreen({
   navigation,
 }: Props): React.JSX.Element {
-  const { t } = useTranslation();
-  const { state, reset } = useFieldRegistration();
-  const userId = useAuthStore((s) => s.user?.id);
+  const {t} = useTranslation();
+  const {state, reset} = useFieldRegistration();
+  const userId = useAuthStore(s => s.user?.id);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +39,10 @@ export function RegistrationQueuedScreen({
         submittedBySupervisorId: userId ?? null,
       });
       if (__DEV__) {
-        console.log('[registration] queued field registration for', state.workerName);
+        console.log(
+          '[registration] queued field registration for',
+          state.workerName,
+        );
       }
       setDone(true);
       reset();
@@ -60,7 +63,9 @@ export function RegistrationQueuedScreen({
         <Text style={styles.title}>{t('registration.stepConfirm')}</Text>
         {done ? (
           <>
-            <Text style={styles.success}>{t('registration.successQueued')}</Text>
+            <Text style={styles.success}>
+              {t('registration.successQueued')}
+            </Text>
             <Button label={t('common.confirm')} onPress={onDone} />
           </>
         ) : (
@@ -82,14 +87,18 @@ export function RegistrationQueuedScreen({
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, padding: spacing.lg, justifyContent: 'center' },
-  title: { ...typography.heading, marginBottom: spacing.md },
-  line: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.lg },
+  content: {flex: 1, padding: spacing.lg, justifyContent: 'center'},
+  title: {...typography.heading, marginBottom: spacing.md},
+  line: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
   success: {
     ...typography.body,
     color: colors.success,
     marginBottom: spacing.lg,
     fontWeight: '600',
   },
-  error: { color: colors.error, marginBottom: spacing.md },
+  error: {color: colors.error, marginBottom: spacing.md},
 });

@@ -1,32 +1,34 @@
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import type { StackScreenProps } from '@react-navigation/stack';
+import React, {useState} from 'react';
+import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {useTranslation} from 'react-i18next';
+import type {StackScreenProps} from '@react-navigation/stack';
 
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { StepIndicator } from '@/components/StepIndicator';
-import { TextField } from '@/components/TextField';
-import { DEV_TEST_SITE_ID } from '@/constants/dev';
-import { hashIdNumber } from '@/lib/hashAadhaar';
-import type { AppLanguage } from '@/i18n';
-import type { EnrollmentStackParamList } from '@/navigation/EnrollmentStack';
-import { useEnrollment } from '@/screens/enrollment/EnrollmentContext';
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
+import {Button} from '@/components/Button';
+import {Screen} from '@/components/Screen';
+import {StepIndicator} from '@/components/StepIndicator';
+import {TextField} from '@/components/TextField';
+import {DEV_TEST_SITE_ID} from '@/constants/dev';
+import {hashIdNumber} from '@/lib/hashAadhaar';
+import type {AppLanguage} from '@/i18n';
+import type {EnrollmentStackParamList} from '@/navigation/EnrollmentStack';
+import {useEnrollment} from '@/screens/enrollment/EnrollmentContext';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
 
 type Props = StackScreenProps<EnrollmentStackParamList, 'WorkerDetails'>;
 
-export function WorkerDetailsScreen({ navigation }: Props): React.JSX.Element {
-  const { t } = useTranslation();
-  const { state, updateState } = useEnrollment();
+export function WorkerDetailsScreen({navigation}: Props): React.JSX.Element {
+  const {t} = useTranslation();
+  const {state, updateState} = useEnrollment();
 
   const [name, setName] = useState(state.name);
   const [role, setRole] = useState(state.role);
   const [contactNumber, setContactNumber] = useState(state.contactNumber);
   const [idNumber, setIdNumber] = useState('');
-  const [language, setLanguage] = useState<AppLanguage>(state.languagePreference);
+  const [language, setLanguage] = useState<AppLanguage>(
+    state.languagePreference,
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const onNext = () => {
@@ -65,7 +67,8 @@ export function WorkerDetailsScreen({ navigation }: Props): React.JSX.Element {
         />
         <Text style={styles.title}>{t('enrollment.title')}</Text>
         <Text style={styles.site}>
-          {t('enrollment.siteLabel')}: {t('enrollment.siteStub')} ({DEV_TEST_SITE_ID.slice(0, 8)}…)
+          {t('enrollment.siteLabel')}: {t('enrollment.siteStub')} (
+          {DEV_TEST_SITE_ID.slice(0, 8)}…)
         </Text>
 
         <TextField
@@ -95,12 +98,17 @@ export function WorkerDetailsScreen({ navigation }: Props): React.JSX.Element {
           keyboardType="phone-pad"
         />
 
-        <Text style={styles.langLabel}>{t('registration.languagePreference')}</Text>
+        <Text style={styles.langLabel}>
+          {t('registration.languagePreference')}
+        </Text>
         <View style={styles.langRow}>
-          {(['en', 'hi'] as AppLanguage[]).map((code) => (
+          {(['en', 'hi'] as AppLanguage[]).map(code => (
             <Pressable
               key={code}
-              style={[styles.langChip, language === code && styles.langChipActive]}
+              style={[
+                styles.langChip,
+                language === code && styles.langChipActive,
+              ]}
               onPress={() => setLanguage(code)}>
               <Text
                 style={[

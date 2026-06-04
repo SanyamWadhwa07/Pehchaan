@@ -1,29 +1,29 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import type { StackScreenProps } from '@react-navigation/stack';
+import {StyleSheet, Text, View} from 'react-native';
+import {useTranslation} from 'react-i18next';
+import type {StackScreenProps} from '@react-navigation/stack';
 
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { StepIndicator } from '@/components/StepIndicator';
-import type { EnrollmentStackParamList } from '@/navigation/EnrollmentStack';
-import { useEnrollment } from '@/screens/enrollment/EnrollmentContext';
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
+import {Button} from '@/components/Button';
+import {Screen} from '@/components/Screen';
+import {StepIndicator} from '@/components/StepIndicator';
+import type {EnrollmentStackParamList} from '@/navigation/EnrollmentStack';
+import {useEnrollment} from '@/screens/enrollment/EnrollmentContext';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
 
 type Props = StackScreenProps<EnrollmentStackParamList, 'ReferenceThumbnail'>;
 
 export function ReferenceThumbnailScreen({
   navigation,
 }: Props): React.JSX.Element {
-  const { t } = useTranslation();
-  const { state, updateState } = useEnrollment();
+  const {t} = useTranslation();
+  const {state, updateState} = useEnrollment();
 
   const frontal = state.captures.frontal ?? '';
 
   const onContinue = () => {
-    updateState({ thumbnailBase64: frontal });
+    updateState({thumbnailBase64: frontal});
     navigation.navigate('EnrollmentReview');
   };
 
@@ -35,7 +35,9 @@ export function ReferenceThumbnailScreen({
         label={t('enrollment.stepThumbnail')}
       />
       <Text style={styles.title}>{t('enrollment.stepThumbnail')}</Text>
-      <Text style={styles.instruction}>{t('enrollment.thumbnailInstruction')}</Text>
+      <Text style={styles.instruction}>
+        {t('enrollment.thumbnailInstruction')}
+      </Text>
 
       {frontal ? (
         <View style={styles.thumbBox}>

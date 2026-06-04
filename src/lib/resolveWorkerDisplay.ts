@@ -1,8 +1,8 @@
-import { Q } from '@nozbe/watermelondb';
+import {Q} from '@nozbe/watermelondb';
 
-import { database } from '@/db';
-import type { Worker } from '@/db/models/Worker';
-import type { UUID } from '@/types';
+import {database} from '@/db';
+import type {Worker} from '@/db/models/Worker';
+import type {UUID} from '@/types';
 
 export type WorkerDisplay = {
   name: string;
@@ -10,7 +10,9 @@ export type WorkerDisplay = {
 };
 
 /** Local WMDB lookup; falls back to worker id string when not hydrated. */
-export async function resolveWorkerDisplay(workerId: UUID): Promise<WorkerDisplay> {
+export async function resolveWorkerDisplay(
+  workerId: UUID,
+): Promise<WorkerDisplay> {
   try {
     const collection = database.collections.get<Worker>('workers');
     const row = await collection.query(Q.where('id', workerId)).fetch();
@@ -24,5 +26,5 @@ export async function resolveWorkerDisplay(workerId: UUID): Promise<WorkerDispla
   } catch {
     // WMDB empty in dev — use fallback below
   }
-  return { name: workerId };
+  return {name: workerId};
 }

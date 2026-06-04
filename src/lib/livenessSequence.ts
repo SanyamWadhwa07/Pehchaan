@@ -1,8 +1,12 @@
-import type { AuthTier, LivenessChallenge } from '@/types';
+import type {AuthTier, LivenessChallenge} from '@/types';
 
-import { requiredLivenessChallengeCount } from '@/lib/authTier';
+import {requiredLivenessChallengeCount} from '@/lib/authTier';
 
-const CHALLENGE_ORDER: LivenessChallenge[] = ['blink', 'turn_left', 'turn_right'];
+const CHALLENGE_ORDER: LivenessChallenge[] = [
+  'blink',
+  'turn_left',
+  'turn_right',
+];
 
 /** Challenges required for the given auth tier (1–3). */
 export function livenessChallengesForTier(tier: AuthTier): LivenessChallenge[] {

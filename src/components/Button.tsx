@@ -8,9 +8,9 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -33,7 +33,7 @@ export function Button({
 
   return (
     <Pressable
-      style={({ pressed }) => [
+      style={({pressed}) => [
         styles.base,
         styles[variant],
         pressed && !isDisabled && styles.pressed,

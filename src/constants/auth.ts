@@ -5,10 +5,10 @@
  */
 
 /** High confidence — single liveness challenge. 96.53% TAR, 0.54% FAR. */
-export const CONFIDENCE_THRESHOLD_HIGH = 0.30;
+export const CONFIDENCE_THRESHOLD_HIGH = 0.3;
 
 /** Medium confidence — two liveness challenges. 98.02% TAR, 2.69% FAR. */
-export const CONFIDENCE_THRESHOLD_MEDIUM = 0.20;
+export const CONFIDENCE_THRESHOLD_MEDIUM = 0.2;
 
 /** Minimum score to report any match from the native bridge. */
 export const CONFIDENCE_THRESHOLD_MINIMUM = 0.18;

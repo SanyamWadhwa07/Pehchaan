@@ -7,7 +7,7 @@
  * alone is not enough after you change `.env`.
  */
 
-import { loadAppConfig } from '@/config/loadConfig';
+import {loadAppConfig} from '@/config/loadConfig';
 
 const Config = loadAppConfig();
 

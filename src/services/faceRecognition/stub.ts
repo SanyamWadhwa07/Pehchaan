@@ -3,8 +3,8 @@
  * Replace with NativeModules.FaceRecognition when Sanyam merges the bridge.
  */
 
-import { authTierFromConfidence } from '@/lib/authTier';
-import type { FaceDetection, QualityCheck, RecognitionResult } from '@/types';
+import {authTierFromConfidence} from '@/lib/authTier';
+import type {FaceDetection, QualityCheck, RecognitionResult} from '@/types';
 
 /** Placeholder face box (normalised 0–1) centred on frame. */
 export const STUB_FACE_BOX: FaceDetection['box'] = {
@@ -36,7 +36,7 @@ export function runQualityCheckStub(): QualityCheck {
     };
   }
 
-  const failReason = STUB_FAIL_REASONS[(tick % STUB_FAIL_REASONS.length)]!;
+  const failReason = STUB_FAIL_REASONS[tick % STUB_FAIL_REASONS.length]!;
   return {
     passed: false,
     brightness: 0.25,
@@ -51,7 +51,9 @@ export function runRecognitionStub(): RecognitionResult {
   const confidence = qualityCheck.passed ? 0.94 : 0.72;
 
   return {
-    workerId: qualityCheck.passed ? '00000000-0000-4000-8000-000000000001' : null,
+    workerId: qualityCheck.passed
+      ? '00000000-0000-4000-8000-000000000001'
+      : null,
     confidence,
     authTier: authTierFromConfidence(confidence),
     qualityCheck,

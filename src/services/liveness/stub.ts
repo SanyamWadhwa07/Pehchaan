@@ -2,7 +2,7 @@
  * Mock liveness challenges until native EAR/yaw bridge merges (Sanyam).
  */
 
-import type { LivenessChallenge, LivenessResult } from '@/types';
+import type {LivenessChallenge, LivenessResult} from '@/types';
 
 let failNext = false;
 
@@ -15,7 +15,7 @@ export async function runLivenessChallengeStub(
   challenge: LivenessChallenge,
 ): Promise<LivenessResult> {
   const start = Date.now();
-  await new Promise<void>((resolve) => {
+  await new Promise<void>(resolve => {
     setTimeout(() => resolve(), 600);
   });
 
@@ -26,7 +26,7 @@ export async function runLivenessChallengeStub(
   const durationMs = Date.now() - start;
 
   if (challenge === 'blink') {
-    return { challenge, passed, ear: passed ? 0.28 : 0.12, durationMs };
+    return {challenge, passed, ear: passed ? 0.28 : 0.12, durationMs};
   }
   return {
     challenge,

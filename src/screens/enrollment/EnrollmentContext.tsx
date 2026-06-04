@@ -25,10 +25,12 @@ export function EnrollmentProvider({
 }: {
   children: ReactNode;
 }): React.JSX.Element {
-  const [state, setState] = useState<EnrollmentWizardState>(initialEnrollmentState);
+  const [state, setState] = useState<EnrollmentWizardState>(
+    initialEnrollmentState,
+  );
 
   const updateState = useCallback((patch: Partial<EnrollmentWizardState>) => {
-    setState((prev) => ({ ...prev, ...patch }));
+    setState(prev => ({...prev, ...patch}));
   }, []);
 
   const reset = useCallback(() => {
@@ -36,12 +38,14 @@ export function EnrollmentProvider({
   }, []);
 
   const value = useMemo(
-    () => ({ state, updateState, reset }),
+    () => ({state, updateState, reset}),
     [state, updateState, reset],
   );
 
   return (
-    <EnrollmentContext.Provider value={value}>{children}</EnrollmentContext.Provider>
+    <EnrollmentContext.Provider value={value}>
+      {children}
+    </EnrollmentContext.Provider>
   );
 }
 

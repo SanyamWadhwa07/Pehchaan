@@ -1,32 +1,30 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import type { StackScreenProps } from '@react-navigation/stack';
+import React, {useState} from 'react';
+import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {useTranslation} from 'react-i18next';
+import type {StackScreenProps} from '@react-navigation/stack';
 
-import { Button } from '@/components/Button';
-import { Screen } from '@/components/Screen';
-import { StepIndicator } from '@/components/StepIndicator';
-import { DEV_TEST_SITE_ID } from '@/constants/dev';
-import type { EnrollmentStackParamList } from '@/navigation/EnrollmentStack';
-import { useEnrollment } from '@/screens/enrollment/EnrollmentContext';
-import { CAPTURE_SEQUENCE } from '@/screens/enrollment/types';
-import { registerWorker } from '@/services/registration/registerWorker';
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { typography } from '@/theme/typography';
+import {Button} from '@/components/Button';
+import {Screen} from '@/components/Screen';
+import {StepIndicator} from '@/components/StepIndicator';
+import {DEV_TEST_SITE_ID} from '@/constants/dev';
+import type {EnrollmentStackParamList} from '@/navigation/EnrollmentStack';
+import {useEnrollment} from '@/screens/enrollment/EnrollmentContext';
+import {CAPTURE_SEQUENCE} from '@/screens/enrollment/types';
+import {registerWorker} from '@/services/registration/registerWorker';
+import {colors} from '@/theme/colors';
+import {spacing} from '@/theme/spacing';
+import {typography} from '@/theme/typography';
 
 type Props = StackScreenProps<EnrollmentStackParamList, 'EnrollmentReview'>;
 
-export function EnrollmentReviewScreen({
-  navigation,
-}: Props): React.JSX.Element {
-  const { t } = useTranslation();
-  const { state, reset } = useEnrollment();
+export function EnrollmentReviewScreen({navigation}: Props): React.JSX.Element {
+  const {t} = useTranslation();
+  const {state, reset} = useEnrollment();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const captureCount = CAPTURE_SEQUENCE.filter((a) => state.captures[a]).length;
+  const captureCount = CAPTURE_SEQUENCE.filter(a => state.captures[a]).length;
 
   const onSubmit = async () => {
     setLoading(true);

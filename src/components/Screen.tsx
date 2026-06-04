@@ -1,8 +1,8 @@
 import React from 'react';
-import { StyleSheet, View, type ViewProps } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {StyleSheet, View, type ViewProps} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
-import { colors } from '@/theme/colors';
+import {colors} from '@/theme/colors';
 
 type ScreenProps = ViewProps & {
   children: React.ReactNode;

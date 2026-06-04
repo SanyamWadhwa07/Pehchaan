@@ -1,5 +1,5 @@
-import type { AppLanguage } from '@/i18n';
-import type { CaptureAngle } from '@/types';
+import type {AppLanguage} from '@/i18n';
+import type {CaptureAngle} from '@/types';
 
 export const REQUIRED_CAPTURE_ANGLES: CaptureAngle[] = [
   'frontal',
@@ -8,7 +8,10 @@ export const REQUIRED_CAPTURE_ANGLES: CaptureAngle[] = [
   'up_tilt',
 ];
 
-export const OPTIONAL_CAPTURE_ANGLES: CaptureAngle[] = ['helmet_on', 'glasses_on'];
+export const OPTIONAL_CAPTURE_ANGLES: CaptureAngle[] = [
+  'helmet_on',
+  'glasses_on',
+];
 
 export const CAPTURE_SEQUENCE: CaptureAngle[] = [
   ...REQUIRED_CAPTURE_ANGLES,

@@ -1,5 +1,5 @@
 import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
+import {initReactI18next} from 'react-i18next';
 import * as RNLocalize from 'react-native-localize';
 
 import {
@@ -31,12 +31,12 @@ export async function initI18n(languageOverride?: AppLanguage): Promise<void> {
     fallbackLng: DEFAULT_LANGUAGE,
     // React Native Hermes lacks Intl.PluralRules — v3 plural format avoids the polyfill.
     compatibilityJSON: 'v3',
-    interpolation: { escapeValue: false },
+    interpolation: {escapeValue: false},
   });
 
   initialized = true;
 }
 
-export { i18n };
-export type { AppLanguage } from '@/i18n/config';
-export { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from '@/i18n/config';
+export {i18n};
+export type {AppLanguage} from '@/i18n/config';
+export {SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE} from '@/i18n/config';

@@ -1,4 +1,4 @@
-import { strFromU8, unzipSync } from 'fflate';
+import {strFromU8, unzipSync} from 'fflate';
 
 import {
   parseSitePackageManifest,
@@ -12,7 +12,9 @@ function readManifestJson(files: Record<string, Uint8Array>): unknown {
     const keys = Object.keys(files);
     throw new Error(
       keys.length
-        ? `site package missing manifest.json (zip has: ${keys.slice(0, 8).join(', ')})`
+        ? `site package missing manifest.json (zip has: ${keys
+            .slice(0, 8)
+            .join(', ')})`
         : 'site package zip is empty',
     );
   }
@@ -24,11 +26,15 @@ function readManifestJson(files: Record<string, Uint8Array>): unknown {
   }
 }
 
-export function unzipSitePackageFiles(buffer: ArrayBuffer): Record<string, Uint8Array> {
-  return unzipSync(new Uint8Array(buffer), { filter: () => true });
+export function unzipSitePackageFiles(
+  buffer: ArrayBuffer,
+): Record<string, Uint8Array> {
+  return unzipSync(new Uint8Array(buffer), {filter: () => true});
 }
 
-export function parseSitePackageFromZipBuffer(buffer: ArrayBuffer): ParsedSitePackage {
+export function parseSitePackageFromZipBuffer(
+  buffer: ArrayBuffer,
+): ParsedSitePackage {
   const files = unzipSitePackageFiles(buffer);
   const parsed = readManifestJson(files);
   if (!parsed || typeof parsed !== 'object') {
@@ -36,9 +42,13 @@ export function parseSitePackageFromZipBuffer(buffer: ArrayBuffer): ParsedSitePa
   }
   const ver = (parsed as Record<string, unknown>).version;
   if (ver === 2) {
-    return { kind: 'v2_encrypted', outer: parseSitePackageManifestV2Outer(parsed), files };
+    return {
+      kind: 'v2_encrypted',
+      outer: parseSitePackageManifestV2Outer(parsed),
+      files,
+    };
   }
-  return { kind: 'v1_plain', manifest: parseSitePackageManifest(parsed) };
+  return {kind: 'v1_plain', manifest: parseSitePackageManifest(parsed)};
 }
 
 /** @deprecated use `parseSitePackageFromZipBuffer` */

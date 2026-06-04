@@ -1,5 +1,5 @@
-import { Model } from '@nozbe/watermelondb';
-import { field } from '@nozbe/watermelondb/decorators';
+import {Model} from '@nozbe/watermelondb';
+import {field} from '@nozbe/watermelondb/decorators';
 
 /** Field registration queue — status `pending_registration` until sync. */
 export class RegistrationRequestModel extends Model {

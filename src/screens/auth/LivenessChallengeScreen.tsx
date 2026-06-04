@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -6,33 +6,44 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Camera, useCameraDevice } from 'react-native-vision-camera';
-import { useTranslation } from 'react-i18next';
-import type { StackScreenProps } from '@react-navigation/stack';
+import {
+  Camera,
+  useCameraDevice,
+  type Camera as CameraType,
+} from 'react-native-vision-camera';
+import {useTranslation} from 'react-i18next';
+import type {StackScreenProps} from '@react-navigation/stack';
 
-import { LIVENESS_CHALLENGE_TIMEOUT_MS, LIVENESS_MAX_ATTEMPTS } from '@/constants/auth';
-import { useCameraPermission } from '@/hooks/useCameraPermission';
-import { useCameraSession } from '@/hooks/useCameraSession';
-import { buildLivenessSession } from '@/lib/buildLivenessSession';
-import { livenessInstructionKey } from '@/lib/livenessI18n';
-import { livenessChallengesForTier } from '@/lib/livenessSequence';
-import { requiresSupervisorFlag } from '@/lib/authTier';
-import type { AuthStackParamList } from '@/navigation/AuthStack';
-import { FaceOverlay } from '@/screens/auth/components/FaceOverlay';
-import { LivenessGuideCard } from '@/screens/auth/components/LivenessGuideCard';
-import { runLivenessChallenge } from '@/services/liveness';
-import { STUB_FACE_BOX } from '@/services/faceRecognition';
-import { colors } from '@/theme/colors';
-import type { LivenessChallenge, LivenessResult } from '@/types';
+import {
+  LIVENESS_CHALLENGE_TIMEOUT_MS,
+  LIVENESS_MAX_ATTEMPTS,
+} from '@/constants/auth';
+import {useCameraPermission} from '@/hooks/useCameraPermission';
+import {useCameraSession} from '@/hooks/useCameraSession';
+import {buildLivenessSession} from '@/lib/buildLivenessSession';
+import {livenessInstructionKey} from '@/lib/livenessI18n';
+import {livenessChallengesForTier} from '@/lib/livenessSequence';
+import {requiresSupervisorFlag} from '@/lib/authTier';
+import type {AuthStackParamList} from '@/navigation/AuthStack';
+import {FaceOverlay} from '@/screens/auth/components/FaceOverlay';
+import {LivenessGuideCard} from '@/screens/auth/components/LivenessGuideCard';
+import {captureFrameBurstBase64} from '@/lib/captureFrame';
+import {runLivenessChallenge} from '@/services/liveness';
+import {STUB_FACE_BOX} from '@/services/faceRecognition';
+import {colors} from '@/theme/colors';
+import type {LivenessChallenge, LivenessResult} from '@/types';
 
 type Props = StackScreenProps<AuthStackParamList, 'Liveness'>;
 
-export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX.Element {
-  const { t } = useTranslation();
-  const { recognition } = route.params;
+export function LivenessChallengeScreen({
+  navigation,
+  route,
+}: Props): React.JSX.Element {
+  const {t} = useTranslation();
+  const {recognition} = route.params;
   const device = useCameraDevice('front');
-  const { hasPermission, isRequesting } = useCameraPermission();
-  const { isActive, onCameraError } = useCameraSession();
+  const {hasPermission, isRequesting} = useCameraPermission();
+  const {isActive, onCameraError} = useCameraSession();
   const [forceInactive, setForceInactive] = useState(false);
   const cameraActive = isActive && !forceInactive;
 
@@ -46,8 +57,10 @@ export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX
   const [running, setRunning] = useState(false);
   const [showOverride, setShowOverride] = useState(false);
   const timedOutRef = useRef(false);
+  const cameraRef = useRef<CameraType>(null);
 
-  const currentChallenge: LivenessChallenge | undefined = sequence[challengeIndex];
+  const currentChallenge: LivenessChallenge | undefined =
+    sequence[challengeIndex];
 
   const finishToAuthResult = useCallback(
     (challengeResults: LivenessResult[]) => {
@@ -66,7 +79,11 @@ export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX
     }
     setRunning(true);
     timedOutRef.current = false;
-    const result = await runLivenessChallenge(currentChallenge);
+    const frames =
+      cameraActive && hasPermission
+        ? await captureFrameBurstBase64(cameraRef, 5, 350)
+        : undefined;
+    const result = await runLivenessChallenge(currentChallenge, frames);
     setRunning(false);
 
     if (timedOutRef.current) {
@@ -80,7 +97,7 @@ export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX
         finishToAuthResult(next);
         return;
       }
-      setChallengeIndex((i) => i + 1);
+      setChallengeIndex(i => i + 1);
       setSecondsLeft(Math.ceil(LIVENESS_CHALLENGE_TIMEOUT_MS / 1000));
       return;
     }
@@ -89,7 +106,7 @@ export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX
       setShowOverride(true);
       return;
     }
-    setAttempt((a) => a + 1);
+    setAttempt(a => a + 1);
     setSecondsLeft(Math.ceil(LIVENESS_CHALLENGE_TIMEOUT_MS / 1000));
   }, [
     attempt,
@@ -97,6 +114,8 @@ export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX
     currentChallenge,
     finishToAuthResult,
     results,
+    cameraActive,
+    hasPermission,
     running,
     sequence.length,
   ]);
@@ -107,14 +126,14 @@ export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX
     }
     setSecondsLeft(Math.ceil(LIVENESS_CHALLENGE_TIMEOUT_MS / 1000));
     const tick = setInterval(() => {
-      setSecondsLeft((s) => {
+      setSecondsLeft(s => {
         if (s <= 1) {
           clearInterval(tick);
           timedOutRef.current = true;
           if (attempt >= LIVENESS_MAX_ATTEMPTS) {
             setShowOverride(true);
           } else {
-            setAttempt((a) => a + 1);
+            setAttempt(a => a + 1);
           }
           return 0;
         }
@@ -132,7 +151,13 @@ export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX
       void runChallenge();
     }, 1200);
     return () => clearTimeout(id);
-  }, [cameraActive, challengeIndex, currentChallenge, showOverride]);
+  }, [
+    cameraActive,
+    challengeIndex,
+    currentChallenge,
+    runChallenge,
+    showOverride,
+  ]);
 
   useEffect(() => {
     const beforeRemoveUnsub = navigation.addListener('beforeRemove', () => {
@@ -179,9 +204,11 @@ export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX
   return (
     <View style={styles.root}>
       <Camera
+        ref={cameraRef}
         style={StyleSheet.absoluteFill}
         device={device}
         isActive={cameraActive}
+        photo
         onError={onCameraError}
       />
       <FaceOverlay box={STUB_FACE_BOX} passed={!showOverride} />
@@ -189,13 +216,13 @@ export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX
       <View style={styles.panel}>
         <Text style={styles.title}>{t('liveness.title')}</Text>
         <Text style={styles.step}>
-          {t('liveness.step', { current: stepNum, total: stepTotal })}
+          {t('liveness.step', {current: stepNum, total: stepTotal})}
         </Text>
         <Text style={styles.countdown}>
-          {t('liveness.secondsLeft', { seconds: secondsLeft })}
+          {t('liveness.secondsLeft', {seconds: secondsLeft})}
         </Text>
         <Text style={styles.attempt}>
-          {t('liveness.attempt', { count: attempt })}
+          {t('liveness.attempt', {count: attempt})}
         </Text>
 
         {currentChallenge && !showOverride ? (
@@ -207,9 +234,15 @@ export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX
 
         {showOverride ? (
           <View style={styles.overrideBox}>
-            <Text style={styles.overrideText}>{t('liveness.supervisorOverride')}</Text>
-            <Pressable style={styles.overrideBtn} onPress={onSupervisorOverride}>
-              <Text style={styles.overrideBtnText}>{t('liveness.continueAnyway')}</Text>
+            <Text style={styles.overrideText}>
+              {t('liveness.supervisorOverride')}
+            </Text>
+            <Pressable
+              style={styles.overrideBtn}
+              onPress={onSupervisorOverride}>
+              <Text style={styles.overrideBtnText}>
+                {t('liveness.continueAnyway')}
+              </Text>
             </Pressable>
           </View>
         ) : running ? (
@@ -225,7 +258,7 @@ export function LivenessChallengeScreen({ navigation, route }: Props): React.JSX
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  root: {flex: 1, backgroundColor: colors.background},
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -249,20 +282,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 4,
   },
-  step: { color: colors.textSecondary, fontSize: 14, marginBottom: 2 },
-  countdown: { color: colors.accent, fontSize: 15, fontWeight: '600' },
-  attempt: { color: colors.textMuted, fontSize: 13, marginTop: 4, marginBottom: 8 },
-  muted: { color: colors.textMuted, marginTop: 12 },
-  overrideBox: { marginTop: 12 },
-  overrideText: { color: colors.error, fontSize: 15, marginBottom: 12 },
+  step: {color: colors.textSecondary, fontSize: 14, marginBottom: 2},
+  countdown: {color: colors.accent, fontSize: 15, fontWeight: '600'},
+  attempt: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  muted: {color: colors.textMuted, marginTop: 12},
+  overrideBox: {marginTop: 12},
+  overrideText: {color: colors.error, fontSize: 15, marginBottom: 12},
   overrideBtn: {
     backgroundColor: colors.primary,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
-  overrideBtnText: { color: colors.onPrimary, fontWeight: '600' },
-  spinner: { marginTop: 8 },
+  overrideBtnText: {color: colors.onPrimary, fontWeight: '600'},
+  spinner: {marginTop: 8},
   flag: {
     marginTop: 12,
     color: colors.warning,

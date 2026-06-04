@@ -14,8 +14,8 @@
  * @see docs/CODE_CONVENTIONS.md
  */
 
-import { integrationEnv, isIntegrationConfigured } from '@/config/env';
-import type { AttendanceRecord, Worker, UUID, ISOTimestamp } from '@/types';
+import {integrationEnv, isIntegrationConfigured} from '@/config/env';
+import type {AttendanceRecord, Worker, UUID, ISOTimestamp} from '@/types';
 
 export type AttendancePayload = Pick<
   AttendanceRecord,
@@ -29,7 +29,10 @@ export type AttendancePayload = Pick<
   | 'livenessScore'
 >;
 
-export type WorkerPayload = Pick<Worker, 'id' | 'name' | 'role' | 'siteId' | 'enrolledAt'>;
+export type WorkerPayload = Pick<
+  Worker,
+  'id' | 'name' | 'role' | 'siteId' | 'enrolledAt'
+>;
 
 export interface RevocationPayload {
   workerIds: UUID[];
@@ -39,8 +42,12 @@ export interface RevocationPayload {
 /**
  * POST /push-to-integration — no-op until `INTEGRATION_API_KEY` is set.
  */
-export async function pushAttendance(payload: AttendancePayload): Promise<void> {
-  if (!isIntegrationConfigured()) return;
+export async function pushAttendance(
+  payload: AttendancePayload,
+): Promise<void> {
+  if (!isIntegrationConfigured()) {
+    return;
+  }
   await fetch(`${integrationEnv.endpoint}/attendance`, {
     method: 'POST',
     headers: {
@@ -53,7 +60,9 @@ export async function pushAttendance(payload: AttendancePayload): Promise<void> 
 
 /** POST /workers — DataLink worker upsert (stub). */
 export async function pushWorker(payload: WorkerPayload): Promise<void> {
-  if (!isIntegrationConfigured()) return;
+  if (!isIntegrationConfigured()) {
+    return;
+  }
   await fetch(`${integrationEnv.endpoint}/workers`, {
     method: 'POST',
     headers: {
@@ -65,8 +74,12 @@ export async function pushWorker(payload: WorkerPayload): Promise<void> {
 }
 
 /** POST /sync-revocations */
-export async function syncRevocations(payload: RevocationPayload): Promise<void> {
-  if (!isIntegrationConfigured()) return;
+export async function syncRevocations(
+  payload: RevocationPayload,
+): Promise<void> {
+  if (!isIntegrationConfigured()) {
+    return;
+  }
   await fetch(`${integrationEnv.endpoint}/revocations`, {
     method: 'POST',
     headers: {

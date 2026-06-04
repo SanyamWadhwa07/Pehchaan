@@ -1,5 +1,5 @@
-import { Model } from '@nozbe/watermelondb';
-import { field } from '@nozbe/watermelondb/decorators';
+import {Model} from '@nozbe/watermelondb';
+import {field} from '@nozbe/watermelondb/decorators';
 
 /** Cached worker row from site package / sync. `embedding_encrypted_base64` holds ciphertext for offline recognition — never log. */
 export class Worker extends Model {

@@ -1,4 +1,4 @@
-import type { LivenessChallenge } from '@/types';
+import type {LivenessChallenge} from '@/types';
 
 /** Locale paths under the `liveness` namespace. */
 export const LIVENESS_I18N_KEYS = {

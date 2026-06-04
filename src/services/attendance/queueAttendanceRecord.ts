@@ -1,6 +1,6 @@
-import { database } from '@/db';
-import type { AttendanceRecordModel } from '@/db/models/AttendanceRecordModel';
-import type { PendingAuthSession } from '@/types';
+import {database} from '@/db';
+import type {AttendanceRecordModel} from '@/db/models/AttendanceRecordModel';
+import type {PendingAuthSession} from '@/types';
 
 export type QueueAttendanceInput = {
   session: PendingAuthSession;
@@ -14,14 +14,15 @@ export type QueueAttendanceInput = {
 export async function queueAttendanceRecord(
   input: QueueAttendanceInput,
 ): Promise<AttendanceRecordModel> {
-  const { session, supervisorId, supervisorConfirmed } = input;
+  const {session, supervisorId, supervisorConfirmed} = input;
   const lastChallenge = session.livenessSession.challenges.at(-1);
 
-  const collection = database.collections.get<AttendanceRecordModel>('attendance_records');
+  const collection =
+    database.collections.get<AttendanceRecordModel>('attendance_records');
 
   let created: AttendanceRecordModel;
   await database.write(async () => {
-    created = await collection.create((rec) => {
+    created = await collection.create(rec => {
       rec.workerId = session.workerId;
       rec.siteId = session.siteId;
       rec.deviceId = session.deviceId;

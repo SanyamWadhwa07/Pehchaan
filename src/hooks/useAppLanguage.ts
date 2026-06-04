@@ -1,8 +1,8 @@
-import { useCallback, useState } from 'react';
+import {useCallback, useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { i18n, type AppLanguage } from '@/i18n';
-import { SUPPORTED_LANGUAGES } from '@/i18n/config';
+import {i18n, type AppLanguage} from '@/i18n';
+import {SUPPORTED_LANGUAGES} from '@/i18n/config';
 
 const APP_LANGUAGE_KEY = 'app_language';
 
@@ -23,5 +23,5 @@ export function useAppLanguage(): {
     setLanguageState(lang);
   }, []);
 
-  return { language, setLanguage };
+  return {language, setLanguage};
 }

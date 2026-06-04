@@ -1,28 +1,28 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { Camera, useCameraDevice } from 'react-native-vision-camera';
-import { useTranslation } from 'react-i18next';
-import type { StackScreenProps } from '@react-navigation/stack';
+import React, {useCallback, useEffect, useState} from 'react';
+import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {Camera, useCameraDevice} from 'react-native-vision-camera';
+import {useTranslation} from 'react-i18next';
+import type {StackScreenProps} from '@react-navigation/stack';
 
-import { Button } from '@/components/Button';
-import { useCameraPermission } from '@/hooks/useCameraPermission';
-import { useCameraSession } from '@/hooks/useCameraSession';
-import { qualityCheckTranslationKey } from '@/lib/qualityI18n';
-import type { RegistrationStackParamList } from '@/navigation/RegistrationStack';
-import { FaceOverlay } from '@/screens/auth/components/FaceOverlay';
-import { useFieldRegistration } from '@/screens/registration/RegistrationContext';
-import { checkFaceQuality, STUB_FACE_BOX } from '@/services/faceRecognition';
-import { colors } from '@/theme/colors';
-import type { QualityCheck } from '@/types';
+import {Button} from '@/components/Button';
+import {useCameraPermission} from '@/hooks/useCameraPermission';
+import {useCameraSession} from '@/hooks/useCameraSession';
+import {qualityCheckTranslationKey} from '@/lib/qualityI18n';
+import type {RegistrationStackParamList} from '@/navigation/RegistrationStack';
+import {FaceOverlay} from '@/screens/auth/components/FaceOverlay';
+import {useFieldRegistration} from '@/screens/registration/RegistrationContext';
+import {checkFaceQuality, STUB_FACE_BOX} from '@/services/faceRecognition';
+import {colors} from '@/theme/colors';
+import type {QualityCheck} from '@/types';
 
 type Props = StackScreenProps<RegistrationStackParamList, 'FieldCapture'>;
 
-export function FieldCaptureScreen({ navigation }: Props): React.JSX.Element {
-  const { t } = useTranslation();
-  const { updateState } = useFieldRegistration();
+export function FieldCaptureScreen({navigation}: Props): React.JSX.Element {
+  const {t} = useTranslation();
+  const {updateState} = useFieldRegistration();
   const device = useCameraDevice('front');
-  const { hasPermission, isRequesting } = useCameraPermission();
-  const { isActive, onCameraError } = useCameraSession();
+  const {hasPermission, isRequesting} = useCameraPermission();
+  const {isActive, onCameraError} = useCameraSession();
   const [forceInactive, setForceInactive] = useState(false);
   const cameraActive = isActive && !forceInactive;
   const [quality, setQuality] = useState<QualityCheck | null>(null);
@@ -54,7 +54,7 @@ export function FieldCaptureScreen({ navigation }: Props): React.JSX.Element {
 
   const onAccept = () => {
     const placeholder = `data:image/jpeg;base64,field-frontal-${Date.now()}`;
-    updateState({ frontalCaptureBase64: placeholder });
+    updateState({frontalCaptureBase64: placeholder});
     setForceInactive(true);
     navigation.navigate('RegistrationQueued');
   };
@@ -79,8 +79,8 @@ export function FieldCaptureScreen({ navigation }: Props): React.JSX.Element {
     quality?.passed === true
       ? 'qualityCheck.pass'
       : quality?.failReason
-        ? qualityCheckTranslationKey(quality.failReason)
-        : null;
+      ? qualityCheckTranslationKey(quality.failReason)
+      : null;
 
   return (
     <View style={styles.root}>
@@ -117,7 +117,7 @@ export function FieldCaptureScreen({ navigation }: Props): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  root: {flex: 1, backgroundColor: colors.background},
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -135,11 +135,16 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
-  title: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 8 },
-  hint: { fontSize: 15, color: colors.textSecondary, marginBottom: 12 },
-  feedback: { fontSize: 15, marginBottom: 12 },
-  pass: { color: colors.success },
-  fail: { color: colors.error },
-  muted: { color: colors.textMuted },
-  btn: { marginTop: 8 },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  hint: {fontSize: 15, color: colors.textSecondary, marginBottom: 12},
+  feedback: {fontSize: 15, marginBottom: 12},
+  pass: {color: colors.success},
+  fail: {color: colors.error},
+  muted: {color: colors.textMuted},
+  btn: {marginTop: 8},
 });

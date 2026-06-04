@@ -1,4 +1,4 @@
-import { sha256 } from 'js-sha256';
+import {sha256} from 'js-sha256';
 
 /**
  * SHA-256 hash of ID / Aadhaar number. Raw value must never be stored or logged.

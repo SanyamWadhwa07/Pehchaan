@@ -36,8 +36,8 @@ export type SitePackageManifestV2Outer = {
    * - `per_device_v1`: one wrapped key per device in `device_envelopes`.
    */
   key_envelope:
-    | { kind: 'site_master_v1'; wrap_blob_b64: string }
-    | { kind: 'per_device_v1' };
+    | {kind: 'site_master_v1'; wrap_blob_b64: string}
+    | {kind: 'per_device_v1'};
   /** Present only when `key_envelope.kind === 'per_device_v1'`. */
   device_envelopes?: Array<{
     device_id: string;
@@ -45,7 +45,7 @@ export type SitePackageManifestV2Outer = {
     wrap_blob_b64: string;
   }>;
   /** Index for UX / validation; authoritative list is inner payload after decrypt. */
-  workers_index: Array<{ id: string; name: string }>;
+  workers_index: Array<{id: string; name: string}>;
   payload: {
     path: 'payload.bin';
     sha256: string;
@@ -75,8 +75,12 @@ export type SitePackageInnerWorker = {
 };
 
 export type ParsedSitePackage =
-  | { kind: 'v1_plain'; manifest: SitePackageManifestV1 }
-  | { kind: 'v2_encrypted'; outer: SitePackageManifestV2Outer; files: Record<string, Uint8Array> };
+  | {kind: 'v1_plain'; manifest: SitePackageManifestV1}
+  | {
+      kind: 'v2_encrypted';
+      outer: SitePackageManifestV2Outer;
+      files: Record<string, Uint8Array>;
+    };
 
 export function parseSitePackageManifest(json: unknown): SitePackageManifestV1 {
   if (!json || typeof json !== 'object') {
@@ -110,8 +114,13 @@ export function parseSitePackageManifest(json: unknown): SitePackageManifestV1 {
       role: r.role,
       site_id: r.site_id,
       reference_thumbnail_url:
-        typeof r.reference_thumbnail_url === 'string' ? r.reference_thumbnail_url : null,
-      enrolled_at: typeof r.enrolled_at === 'string' ? r.enrolled_at : new Date().toISOString(),
+        typeof r.reference_thumbnail_url === 'string'
+          ? r.reference_thumbnail_url
+          : null,
+      enrolled_at:
+        typeof r.enrolled_at === 'string'
+          ? r.enrolled_at
+          : new Date().toISOString(),
       revoked_at: typeof r.revoked_at === 'string' ? r.revoked_at : null,
       language_preference: lang,
     });
@@ -119,13 +128,18 @@ export function parseSitePackageManifest(json: unknown): SitePackageManifestV1 {
   return {
     version: 1,
     cipher: o.cipher === 'aes-256-gcm' ? 'aes-256-gcm' : 'none',
-    generated_at: typeof o.generated_at === 'string' ? o.generated_at : new Date().toISOString(),
+    generated_at:
+      typeof o.generated_at === 'string'
+        ? o.generated_at
+        : new Date().toISOString(),
     site_id: o.site_id,
     workers,
   };
 }
 
-export function parseSitePackageManifestV2Outer(json: unknown): SitePackageManifestV2Outer {
+export function parseSitePackageManifestV2Outer(
+  json: unknown,
+): SitePackageManifestV2Outer {
   if (!json || typeof json !== 'object') {
     throw new Error('manifest: expected object');
   }
@@ -145,8 +159,7 @@ export function parseSitePackageManifestV2Outer(json: unknown): SitePackageManif
   }
   const k = ke as Record<string, unknown>;
   // accept 'per_device_reserved' as legacy alias
-  const keKind =
-    k.kind === 'per_device_reserved' ? 'per_device_v1' : k.kind;
+  const keKind = k.kind === 'per_device_reserved' ? 'per_device_v1' : k.kind;
   if (keKind !== 'site_master_v1' && keKind !== 'per_device_v1') {
     throw new Error('manifest: unsupported key_envelope.kind');
   }
@@ -158,19 +171,23 @@ export function parseSitePackageManifestV2Outer(json: unknown): SitePackageManif
     throw new Error('manifest: missing payload');
   }
   const p = payload as Record<string, unknown>;
-  if (p.path !== 'payload.bin' || typeof p.sha256 !== 'string' || typeof p.size_bytes !== 'number') {
+  if (
+    p.path !== 'payload.bin' ||
+    typeof p.sha256 !== 'string' ||
+    typeof p.size_bytes !== 'number'
+  ) {
     throw new Error('manifest: invalid payload descriptor');
   }
   const fmt = o.package_format === 'incremental' ? 'incremental' : 'full';
   const workers_index = Array.isArray(o.workers_index) ? o.workers_index : [];
-  const idx: Array<{ id: string; name: string }> = [];
+  const idx: Array<{id: string; name: string}> = [];
   for (const row of workers_index) {
     if (!row || typeof row !== 'object') {
       continue;
     }
     const r = row as Record<string, unknown>;
     if (typeof r.id === 'string' && typeof r.name === 'string') {
-      idx.push({ id: r.id, name: r.name });
+      idx.push({id: r.id, name: r.name});
     }
   }
   return {
@@ -178,23 +195,38 @@ export function parseSitePackageManifestV2Outer(json: unknown): SitePackageManif
     cipher: 'aes-256-gcm',
     generated_at: o.generated_at,
     site_id: o.site_id,
-    package_version: typeof o.package_version === 'number' ? o.package_version : 0,
+    package_version:
+      typeof o.package_version === 'number' ? o.package_version : 0,
     package_format: fmt,
     previous_package_version:
-      typeof o.previous_package_version === 'number' ? o.previous_package_version : null,
-    key_envelope: keKind === 'per_device_v1'
-      ? { kind: 'per_device_v1' as const }
-      : { kind: 'site_master_v1' as const, wrap_blob_b64: k.wrap_blob_b64 as string },
+      typeof o.previous_package_version === 'number'
+        ? o.previous_package_version
+        : null,
+    key_envelope:
+      keKind === 'per_device_v1'
+        ? {kind: 'per_device_v1' as const}
+        : {
+            kind: 'site_master_v1' as const,
+            wrap_blob_b64: k.wrap_blob_b64 as string,
+          },
     device_envelopes: (() => {
       if (keKind !== 'per_device_v1' || !Array.isArray(o.device_envelopes)) {
         return undefined;
       }
-      const envelopes: Array<{ device_id: string; wrap_blob_b64: string }> = [];
+      const envelopes: Array<{device_id: string; wrap_blob_b64: string}> = [];
       for (const e of o.device_envelopes) {
-        if (!e || typeof e !== 'object') { continue; }
+        if (!e || typeof e !== 'object') {
+          continue;
+        }
         const ev = e as Record<string, unknown>;
-        if (typeof ev.device_id === 'string' && typeof ev.wrap_blob_b64 === 'string') {
-          envelopes.push({ device_id: ev.device_id, wrap_blob_b64: ev.wrap_blob_b64 });
+        if (
+          typeof ev.device_id === 'string' &&
+          typeof ev.wrap_blob_b64 === 'string'
+        ) {
+          envelopes.push({
+            device_id: ev.device_id,
+            wrap_blob_b64: ev.wrap_blob_b64,
+          });
         }
       }
       return envelopes;
@@ -208,7 +240,9 @@ export function parseSitePackageManifestV2Outer(json: unknown): SitePackageManif
   };
 }
 
-export function parseSitePackageInnerPayload(json: unknown): SitePackageInnerPayload {
+export function parseSitePackageInnerPayload(
+  json: unknown,
+): SitePackageInnerPayload {
   if (!json || typeof json !== 'object') {
     throw new Error('inner: expected object');
   }
@@ -238,16 +272,28 @@ export function parseSitePackageInnerPayload(json: unknown): SitePackageInnerPay
       name: r.name,
       role: r.role,
       site_id: r.site_id,
-      language_preference: typeof r.language_preference === 'string' ? r.language_preference : 'en',
-      enrolled_at: typeof r.enrolled_at === 'string' ? r.enrolled_at : new Date().toISOString(),
+      language_preference:
+        typeof r.language_preference === 'string'
+          ? r.language_preference
+          : 'en',
+      enrolled_at:
+        typeof r.enrolled_at === 'string'
+          ? r.enrolled_at
+          : new Date().toISOString(),
       revoked_at: typeof r.revoked_at === 'string' ? r.revoked_at : null,
       reference_thumbnail_url:
-        typeof r.reference_thumbnail_url === 'string' ? r.reference_thumbnail_url : null,
+        typeof r.reference_thumbnail_url === 'string'
+          ? r.reference_thumbnail_url
+          : null,
       embedding_encrypted_base64:
-        typeof r.embedding_encrypted_base64 === 'string' ? r.embedding_encrypted_base64 : null,
+        typeof r.embedding_encrypted_base64 === 'string'
+          ? r.embedding_encrypted_base64
+          : null,
       reference_thumbnail_base64:
-        typeof r.reference_thumbnail_base64 === 'string' ? r.reference_thumbnail_base64 : null,
+        typeof r.reference_thumbnail_base64 === 'string'
+          ? r.reference_thumbnail_base64
+          : null,
     });
   }
-  return { inner_format_version: 1, site_id: o.site_id, workers };
+  return {inner_format_version: 1, site_id: o.site_id, workers};
 }
