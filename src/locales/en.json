@@ -38,6 +38,7 @@
     "attempt": "Attempt {{count}} of 3",
     "step": "Step {{current}} of {{total}}",
     "secondsLeft": "{{seconds}}s remaining",
+    "captureNow": "Perform the action now — we are recording",
     "continueAnyway": "Continue — supervisor will verify",
     "lowConfidenceFlag": "Low match confidence — supervisor must verify carefully.",
     "supervisorOverride": "Please contact your supervisor."
@@ -78,6 +79,7 @@
     "capturePhoto": "Capture Photo",
     "captureInstruction": "Look directly at the camera.",
     "acceptCapture": "Accept capture",
+    "captureFailed": "Could not capture photo. Hold steady and try again.",
     "submitting": "Submitting registration...",
     "successQueued": "Registration queued. Will sync when connected.",
     "successSubmitted": "Worker registered successfully."
@@ -88,6 +90,7 @@
     "syncStatus": "Sync Status",
     "pendingSync": "{{count}} records pending sync",
     "lastSync": "Last sync: {{time}}",
+    "authenticateWorker": "Authenticate Worker",
     "registerWorker": "Register New Worker",
     "pendingAuth": "Worker awaiting confirmation",
     "reviewNow": "Review now",

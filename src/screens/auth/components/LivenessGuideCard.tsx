@@ -7,6 +7,8 @@ import type {LivenessChallenge} from '@/types';
 type Props = {
   challenge: LivenessChallenge;
   instruction: string;
+  /** Stronger pulse when the capture window is open. */
+  active?: boolean;
 };
 
 const ICON: Record<LivenessChallenge, string> = {
@@ -18,30 +20,33 @@ const ICON: Record<LivenessChallenge, string> = {
 export function LivenessGuideCard({
   challenge,
   instruction,
+  active = false,
 }: Props): React.JSX.Element {
   const pulse = useRef(new Animated.Value(1)).current;
+  const peak = active ? 1.18 : 1.08;
+  const duration = active ? 400 : 600;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, {
-          toValue: 1.08,
-          duration: 600,
+          toValue: peak,
+          duration,
           useNativeDriver: true,
         }),
         Animated.timing(pulse, {
           toValue: 1,
-          duration: 600,
+          duration,
           useNativeDriver: true,
         }),
       ]),
     );
     loop.start();
     return () => loop.stop();
-  }, [pulse]);
+  }, [duration, peak, pulse]);
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, active && styles.cardActive]}>
       <Animated.Text style={[styles.icon, {transform: [{scale: pulse}]}]}>
         {ICON[challenge]}
       </Animated.Text>
@@ -54,6 +59,11 @@ const styles = StyleSheet.create({
   card: {
     alignItems: 'center',
     paddingVertical: 16,
+  },
+  cardActive: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    marginTop: 4,
   },
   icon: {
     fontSize: 48,

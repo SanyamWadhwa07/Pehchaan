@@ -49,7 +49,16 @@ export function SupervisorHomeScreen({navigation}: Props): React.JSX.Element {
       </View>
 
       <Button
+        label={t('supervisorDashboard.authenticateWorker')}
+        onPress={() =>
+          navigation.getParent()?.navigate('Auth', {screen: 'QualityCheck'})
+        }
+        style={styles.cta}
+      />
+
+      <Button
         label={t('supervisorDashboard.registerWorker')}
+        variant="secondary"
         onPress={() => navigation.getParent()?.navigate('Registration')}
         style={styles.cta}
       />

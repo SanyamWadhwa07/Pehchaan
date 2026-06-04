@@ -38,6 +38,7 @@
     "attempt": "प्रयास {{count}} / 3",
     "step": "चरण {{current}} / {{total}}",
     "secondsLeft": "{{seconds}} सेकंड शेष",
+    "captureNow": "अभी कार्य करें — रिकॉर्डिंग चल रही है",
     "continueAnyway": "जारी रखें — सुपरवाइज़र सत्यापित करेगा",
     "lowConfidenceFlag": "कम मिलान विश्वास — सुपरवाइज़र को सावधानी से जाँच करनी होगी।",
     "supervisorOverride": "कृपया अपने सुपरवाइज़र से संपर्क करें।"
@@ -78,6 +79,7 @@
     "capturePhoto": "फ़ोटो लें",
     "captureInstruction": "सीधे कैमरे की तरफ देखें।",
     "acceptCapture": "फ़ोटो स्वीकार करें",
+    "captureFailed": "फ़ोटो नहीं ली जा सकी। स्थिर रहें और पुनः प्रयास करें।",
     "submitting": "पंजीकरण जमा हो रहा है...",
     "successQueued": "पंजीकरण कतार में है। कनेक्शन होने पर सिंक होगा।",
     "successSubmitted": "श्रमिक का पंजीकरण सफल।"
@@ -88,6 +90,7 @@
     "syncStatus": "सिंक स्थिति",
     "pendingSync": "{{count}} रिकॉर्ड सिंक होने बाकी",
     "lastSync": "अंतिम सिंक: {{time}}",
+    "authenticateWorker": "श्रमिक की पहचान",
     "registerWorker": "नए श्रमिक का पंजीकरण",
     "pendingAuth": "श्रमिक पुष्टि की प्रतीक्षा में",
     "reviewNow": "अभी जाँचें",

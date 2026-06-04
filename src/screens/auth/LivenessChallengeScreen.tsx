@@ -16,18 +16,19 @@ import type {StackScreenProps} from '@react-navigation/stack';
 
 import {
   LIVENESS_CHALLENGE_TIMEOUT_MS,
+  LIVENESS_FRAME_SAMPLE_MS,
   LIVENESS_MAX_ATTEMPTS,
 } from '@/constants/auth';
 import {useCameraPermission} from '@/hooks/useCameraPermission';
 import {useCameraSession} from '@/hooks/useCameraSession';
 import {buildLivenessSession} from '@/lib/buildLivenessSession';
+import {captureFrameBase64, useCaptureInFlight} from '@/lib/captureFrame';
 import {livenessInstructionKey} from '@/lib/livenessI18n';
 import {livenessChallengesForTier} from '@/lib/livenessSequence';
 import {requiresSupervisorFlag} from '@/lib/authTier';
 import type {AuthStackParamList} from '@/navigation/AuthStack';
 import {FaceOverlay} from '@/screens/auth/components/FaceOverlay';
 import {LivenessGuideCard} from '@/screens/auth/components/LivenessGuideCard';
-import {captureFrameBurstBase64} from '@/lib/captureFrame';
 import {runLivenessChallenge} from '@/services/liveness';
 import {STUB_FACE_BOX} from '@/services/faceRecognition';
 import {colors} from '@/theme/colors';
@@ -56,8 +57,10 @@ export function LivenessChallengeScreen({
   );
   const [running, setRunning] = useState(false);
   const [showOverride, setShowOverride] = useState(false);
-  const timedOutRef = useRef(false);
   const cameraRef = useRef<CameraType>(null);
+  const framesRef = useRef<string[]>([]);
+  const evaluatingRef = useRef(false);
+  const {tryAcquire, release} = useCaptureInFlight();
 
   const currentChallenge: LivenessChallenge | undefined =
     sequence[challengeIndex];
@@ -73,22 +76,42 @@ export function LivenessChallengeScreen({
     [navigation, recognition],
   );
 
-  const runChallenge = useCallback(async () => {
-    if (!currentChallenge || running) {
+  const sampleFrame = useCallback(async () => {
+    if (!cameraActive || !hasPermission || !tryAcquire()) {
       return;
     }
-    setRunning(true);
-    timedOutRef.current = false;
-    const frames =
-      cameraActive && hasPermission
-        ? await captureFrameBurstBase64(cameraRef, 5, 350)
-        : undefined;
-    const result = await runLivenessChallenge(currentChallenge, frames);
-    setRunning(false);
+    try {
+      const frame = await captureFrameBase64(cameraRef);
+      if (frame) {
+        framesRef.current.push(frame);
+      }
+    } finally {
+      release();
+    }
+  }, [cameraActive, hasPermission, release, tryAcquire]);
 
-    if (timedOutRef.current) {
+  const evaluateChallenge = useCallback(async () => {
+    if (!currentChallenge || running || evaluatingRef.current) {
       return;
     }
+    evaluatingRef.current = true;
+    setRunning(true);
+
+    const frames =
+      framesRef.current.length > 0 ? [...framesRef.current] : undefined;
+    if (__DEV__) {
+      console.log(
+        '[liveness]',
+        currentChallenge,
+        'frames',
+        frames?.length ?? 0,
+        frames?.length ? 'native' : 'stub',
+      );
+    }
+
+    const result = await runLivenessChallenge(currentChallenge, frames);
+    evaluatingRef.current = false;
+    setRunning(false);
 
     if (result.passed) {
       const next = [...results, result];
@@ -98,6 +121,7 @@ export function LivenessChallengeScreen({
         return;
       }
       setChallengeIndex(i => i + 1);
+      setAttempt(1);
       setSecondsLeft(Math.ceil(LIVENESS_CHALLENGE_TIMEOUT_MS / 1000));
       return;
     }
@@ -114,48 +138,55 @@ export function LivenessChallengeScreen({
     currentChallenge,
     finishToAuthResult,
     results,
-    cameraActive,
-    hasPermission,
     running,
     sequence.length,
+  ]);
+
+  useEffect(() => {
+    framesRef.current = [];
+    setSecondsLeft(Math.ceil(LIVENESS_CHALLENGE_TIMEOUT_MS / 1000));
+  }, [challengeIndex, attempt, currentChallenge]);
+
+  useEffect(() => {
+    if (!currentChallenge || !cameraActive || showOverride) {
+      return;
+    }
+    void sampleFrame();
+    const sampleId = setInterval(
+      () => void sampleFrame(),
+      LIVENESS_FRAME_SAMPLE_MS,
+    );
+    return () => clearInterval(sampleId);
+  }, [
+    attempt,
+    cameraActive,
+    challengeIndex,
+    currentChallenge,
+    showOverride,
+    sampleFrame,
   ]);
 
   useEffect(() => {
     if (!currentChallenge || !cameraActive || showOverride) {
       return;
     }
-    setSecondsLeft(Math.ceil(LIVENESS_CHALLENGE_TIMEOUT_MS / 1000));
     const tick = setInterval(() => {
       setSecondsLeft(s => {
         if (s <= 1) {
           clearInterval(tick);
-          timedOutRef.current = true;
-          if (attempt >= LIVENESS_MAX_ATTEMPTS) {
-            setShowOverride(true);
-          } else {
-            setAttempt(a => a + 1);
-          }
+          void evaluateChallenge();
           return 0;
         }
         return s - 1;
       });
     }, 1000);
     return () => clearInterval(tick);
-  }, [attempt, cameraActive, challengeIndex, currentChallenge, showOverride]);
-
-  useEffect(() => {
-    if (!currentChallenge || showOverride || !cameraActive) {
-      return;
-    }
-    const id = setTimeout(() => {
-      void runChallenge();
-    }, 1200);
-    return () => clearTimeout(id);
   }, [
+    attempt,
     cameraActive,
     challengeIndex,
     currentChallenge,
-    runChallenge,
+    evaluateChallenge,
     showOverride,
   ]);
 
@@ -200,6 +231,7 @@ export function LivenessChallengeScreen({
 
   const stepNum = challengeIndex + 1;
   const stepTotal = sequence.length;
+  const showCaptureNow = secondsLeft > 0 && secondsLeft <= 2 && !running;
 
   return (
     <View style={styles.root}>
@@ -221,6 +253,9 @@ export function LivenessChallengeScreen({
         <Text style={styles.countdown}>
           {t('liveness.secondsLeft', {seconds: secondsLeft})}
         </Text>
+        {showCaptureNow ? (
+          <Text style={styles.captureNow}>{t('liveness.captureNow')}</Text>
+        ) : null}
         <Text style={styles.attempt}>
           {t('liveness.attempt', {count: attempt})}
         </Text>
@@ -229,6 +264,7 @@ export function LivenessChallengeScreen({
           <LivenessGuideCard
             challenge={currentChallenge}
             instruction={t(livenessInstructionKey(currentChallenge))}
+            active={showCaptureNow}
           />
         ) : null}
 
@@ -275,6 +311,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panelOnCamera,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
+    maxHeight: '55%',
   },
   title: {
     color: colors.text,
@@ -284,6 +321,13 @@ const styles = StyleSheet.create({
   },
   step: {color: colors.textSecondary, fontSize: 14, marginBottom: 2},
   countdown: {color: colors.accent, fontSize: 15, fontWeight: '600'},
+  captureNow: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 4,
+    marginBottom: 4,
+  },
   attempt: {
     color: colors.textMuted,
     fontSize: 13,

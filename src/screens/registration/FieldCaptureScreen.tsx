@@ -1,12 +1,17 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
-import {Camera, useCameraDevice} from 'react-native-vision-camera';
+import {
+  Camera,
+  useCameraDevice,
+  type Camera as CameraType,
+} from 'react-native-vision-camera';
 import {useTranslation} from 'react-i18next';
 import type {StackScreenProps} from '@react-navigation/stack';
 
 import {Button} from '@/components/Button';
 import {useCameraPermission} from '@/hooks/useCameraPermission';
 import {useCameraSession} from '@/hooks/useCameraSession';
+import {captureFrameBase64, useCaptureInFlight} from '@/lib/captureFrame';
 import {qualityCheckTranslationKey} from '@/lib/qualityI18n';
 import type {RegistrationStackParamList} from '@/navigation/RegistrationStack';
 import {FaceOverlay} from '@/screens/auth/components/FaceOverlay';
@@ -17,6 +22,8 @@ import type {QualityCheck} from '@/types';
 
 type Props = StackScreenProps<RegistrationStackParamList, 'FieldCapture'>;
 
+const POLL_MS = 500;
+
 export function FieldCaptureScreen({navigation}: Props): React.JSX.Element {
   const {t} = useTranslation();
   const {updateState} = useFieldRegistration();
@@ -26,15 +33,28 @@ export function FieldCaptureScreen({navigation}: Props): React.JSX.Element {
   const [forceInactive, setForceInactive] = useState(false);
   const cameraActive = isActive && !forceInactive;
   const [quality, setQuality] = useState<QualityCheck | null>(null);
+  const [accepting, setAccepting] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
+  const cameraRef = useRef<CameraType>(null);
+  const {tryAcquire, release} = useCaptureInFlight();
 
   const pollQuality = useCallback(async () => {
-    setQuality(await checkFaceQuality());
-  }, []);
+    if (!tryAcquire()) {
+      return;
+    }
+    try {
+      const frame = cameraActive ? await captureFrameBase64(cameraRef) : null;
+      const result = await checkFaceQuality(frame ?? undefined);
+      setQuality(result);
+    } finally {
+      release();
+    }
+  }, [cameraActive, release, tryAcquire]);
 
   useEffect(() => {
     if (hasPermission && cameraActive) {
       void pollQuality();
-      const id = setInterval(() => void pollQuality(), 500);
+      const id = setInterval(() => void pollQuality(), POLL_MS);
       return () => clearInterval(id);
     }
   }, [hasPermission, cameraActive, pollQuality]);
@@ -52,10 +72,21 @@ export function FieldCaptureScreen({navigation}: Props): React.JSX.Element {
     };
   }, [navigation]);
 
-  const onAccept = () => {
-    const placeholder = `data:image/jpeg;base64,field-frontal-${Date.now()}`;
-    updateState({frontalCaptureBase64: placeholder});
+  const onAccept = async () => {
+    if (!quality?.passed || accepting) {
+      return;
+    }
+    setAccepting(true);
+    setCaptureError(null);
+    const frame = cameraActive ? await captureFrameBase64(cameraRef) : null;
+    if (!frame) {
+      setCaptureError(t('registration.captureFailed'));
+      setAccepting(false);
+      return;
+    }
+    updateState({frontalCaptureBase64: frame});
     setForceInactive(true);
+    setAccepting(false);
     navigation.navigate('RegistrationQueued');
   };
 
@@ -85,9 +116,11 @@ export function FieldCaptureScreen({navigation}: Props): React.JSX.Element {
   return (
     <View style={styles.root}>
       <Camera
+        ref={cameraRef}
         style={StyleSheet.absoluteFill}
         device={device}
         isActive={cameraActive}
+        photo
         onError={onCameraError}
       />
       <FaceOverlay box={STUB_FACE_BOX} passed={quality?.passed ?? false} />
@@ -105,10 +138,11 @@ export function FieldCaptureScreen({navigation}: Props): React.JSX.Element {
         ) : (
           <ActivityIndicator color={colors.accent} />
         )}
+        {captureError ? <Text style={styles.fail}>{captureError}</Text> : null}
         <Button
           label={t('registration.acceptCapture')}
-          onPress={onAccept}
-          disabled={!quality?.passed}
+          onPress={() => void onAccept()}
+          disabled={!quality?.passed || accepting}
           style={styles.btn}
         />
       </View>
@@ -134,6 +168,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panelOnCamera,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
+    maxHeight: '45%',
   },
   title: {
     fontSize: 18,

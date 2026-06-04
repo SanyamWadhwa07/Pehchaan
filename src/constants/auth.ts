@@ -18,3 +18,6 @@ export const LIVENESS_MAX_ATTEMPTS = 3;
 
 /** Per-challenge timeout (ms). */
 export const LIVENESS_CHALLENGE_TIMEOUT_MS = 5_000;
+
+/** Interval between liveness frame samples during the countdown (ms). */
+export const LIVENESS_FRAME_SAMPLE_MS = 400;
