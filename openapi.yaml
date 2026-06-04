@@ -186,8 +186,12 @@ paths:
 
   /sync-revocations:
     post:
-      summary: Sync revoked worker IDs
-      description: Device sends last_sync_at; server returns revoked worker IDs since that timestamp.
+      summary: Pull worker revocations for a device site
+      description: |
+        Device JWT only. Returns `revocation_log` entries and `workers.revoked_at` changes strictly after `since`.
+        When `device_id` is sent and `since` is omitted, the Edge function uses `devices.last_sync_at` for `since`
+        (epoch if null), then patches **`devices.last_sync_at`**, optional **`trust_score`** / **`app_version`** (N5),
+        after a successful query (N4 watermark).
       security:
         - DeviceJWT: []
       requestBody:
@@ -196,27 +200,51 @@ paths:
           application/json:
             schema:
               type: object
-              required: [last_sync_at, site_id]
+              required: [site_id]
               properties:
-                last_sync_at:
-                  type: string
-                  format: date-time
                 site_id:
                   type: string
                   format: uuid
+                  description: Must match JWT `app_metadata.site_id`.
+                since:
+                  type: string
+                  format: date-time
+                  description: Optional lower bound (ISO). Omitted with `device_id` → server uses `devices.last_sync_at`.
+                device_id:
+                  type: string
+                  format: uuid
+                  description: Optional; enables server-side `since` default + device row patch after success.
+                trust_score:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                  description: Optional device-reported trust (N5); applied with `last_sync_at` when `device_id` set.
+                app_version:
+                  type: string
+                  maxLength: 64
+                  description: Optional app semver for `devices.app_version` (N5).
       responses:
         '200':
-          description: Revoked worker IDs since last sync
+          description: Revocations since watermark
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  revoked_worker_ids:
+                  revocations:
                     type: array
                     items:
-                      type: string
-                      format: uuid
+                      type: object
+                      required: [worker_id, revoked_at]
+                      properties:
+                        worker_id:
+                          type: string
+                          format: uuid
+                        revoked_at:
+                          type: string
+                          format: date-time
+                        reason:
+                          type: string
 
   /device-revoke:
     post:
@@ -272,6 +300,12 @@ paths:
                 status:
                   type: string
                   enum: [pending_registration, pending]
+                captured_angles_json:
+                  type: object
+                  description: |
+                    Per-angle face data (inline base64 or `{ref:storage,bucket,path}` after large-payload upload).
+                    Maps to `registration_requests.captured_angles_json` (jsonb).
+                  additionalProperties: true
       responses:
         '201':
           description: Registration request created

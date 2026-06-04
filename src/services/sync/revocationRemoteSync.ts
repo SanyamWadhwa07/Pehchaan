@@ -2,15 +2,22 @@ import { Q } from '@nozbe/watermelondb';
 import type { Database } from '@nozbe/watermelondb';
 
 import type { Worker } from '@/db/models/Worker';
-import { fetchDeviceById } from '@/repositories/devicesRepository';
 import { requireSupabase } from '@/lib/supabase';
 
 export type RevocationSyncOptions = {
   siteId: string;
-  /** When set, Edge may default `since` from `devices.last_sync_at` and bump `last_sync_at` after success. */
+  /** When set without `since`, the request omits `since` so Edge reads `devices.last_sync_at` and bumps it after success. */
   deviceId?: string;
   /** ISO lower bound; overrides device `last_sync_at` default when set. */
   since?: string;
+  /**
+   * Optional 0–1 device-reported trust (N5). Sent only when `deviceId` is set; persisted by Edge with `last_sync_at`.
+   */
+  trustScore?: number;
+  /**
+   * Optional app semver for `devices.app_version` (N5). Sent only when `deviceId` is set.
+   */
+  appVersion?: string;
 };
 
 export type RevocationSyncResult = {
@@ -26,6 +33,8 @@ type EdgePayload = {
 /**
  * Pull revocations from Edge (`sync-revocations`) and mirror onto WMDB workers:
  * `is_revoked`, `revoked_at`, clear `embedding_encrypted_base64` (offline auth unusable).
+ * When `deviceId` is set, the Edge function also patches **`devices.last_sync_at`** and optional
+ * **`trust_score`** / **`app_version`** (N5 device metadata).
  *
  * **Requires device JWT** with `app_metadata.site_id` matching `options.siteId`.
  */
@@ -39,27 +48,30 @@ export async function syncRevocationsFromServer(
     return { applied: 0, errors: ['siteId required'] };
   }
 
-  let since = options.since?.trim();
   const deviceId = options.deviceId?.trim();
+  const explicitSince = options.since?.trim();
 
-  if (!since && deviceId) {
-    try {
-      const dev = await fetchDeviceById(deviceId);
-      since = dev?.last_sync_at?.trim() ?? undefined;
-    } catch (e: unknown) {
-      errors.push(e instanceof Error ? e.message : String(e));
-    }
+  /**
+   * When `device_id` is sent without `since`, the Edge function loads `devices.last_sync_at`
+   * (service role) — single source of truth and one fewer client round-trip.
+   */
+  const body: Record<string, string | number> = {site_id: siteId};
+  if (explicitSince) {
+    body.since = explicitSince;
   }
-  if (!since) {
-    since = '1970-01-01T00:00:00.000Z';
-  }
-
-  const body: Record<string, string> = {
-    site_id: siteId,
-    since,
-  };
   if (deviceId) {
     body.device_id = deviceId;
+    if (
+      options.trustScore !== undefined &&
+      typeof options.trustScore === 'number' &&
+      Number.isFinite(options.trustScore)
+    ) {
+      body.trust_score = options.trustScore;
+    }
+    const ver = options.appVersion?.trim();
+    if (ver) {
+      body.app_version = ver.slice(0, 64);
+    }
   }
 
   const { data, error } = await requireSupabase().functions.invoke<EdgePayload>(
@@ -91,7 +103,9 @@ export async function syncRevocationsFromServer(
     for (const r of revocations) {
       const wid = r.worker_id?.trim();
       if (!wid) continue;
-      const list = await workers.query(Q.where('id', wid)).fetch();
+      const list = await workers
+        .query(Q.and(Q.where('id', wid), Q.where('site_id', siteId)))
+        .fetch();
       const w = list[0];
       if (!w) continue;
       await w.update((rec) => {

@@ -41,6 +41,12 @@ export interface AttendanceRecordRow {
   client_event_id: string | null;
 }
 
+/** Inline base64 or storage pointer written by `registrationOutboxSync` (N2). */
+export type RegistrationCapturedAnglesJson = Record<
+  string,
+  string | {ref: 'storage'; bucket: string; path: string}
+> | null;
+
 export interface RegistrationRequestRow {
   id: string;
   worker_name: string;
@@ -52,6 +58,7 @@ export interface RegistrationRequestRow {
   review_note: string | null;
   created_at: string;
   approved_at: string | null;
+  captured_angles_json?: RegistrationCapturedAnglesJson;
 }
 
 export interface DeviceRow {

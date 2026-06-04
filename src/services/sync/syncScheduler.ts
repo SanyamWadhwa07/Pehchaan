@@ -5,6 +5,7 @@ import type {Database} from '@nozbe/watermelondb';
 import Config from 'react-native-config';
 import NetInfo from '@react-native-community/netinfo';
 
+import {APP_SEMVER, DEVICE_TRUST_SCORE_TIER0} from '@/constants/appInfo';
 import {reconcileAttendanceFromServer} from '@/services/sync/attendanceRemoteReconcile';
 import {pushPendingAttendanceOutbox} from '@/services/sync/attendanceOutboxSync';
 import {pushPendingRegistrationOutbox} from '@/services/sync/registrationOutboxSync';
@@ -28,8 +29,8 @@ export type SyncSchedulerConfig = {
    */
   siteId?: string;
   /**
-   * `devices.id` for this terminal (e.g. `app_metadata.device_id`). Used for revocation sync
-   * `since` default + optional `devices.last_sync_at` bump on the Edge function.
+   * `devices.id` for this terminal (e.g. `app_metadata.device_id`). Used for revocation sync,
+   * **`devices.last_sync_at`** watermark, and N5 metadata (`trust_score`, `app_version`) via Edge.
    */
   deviceId?: string;
   /**
@@ -108,9 +109,16 @@ export function createSyncScheduler(config: SyncSchedulerConfig) {
       if (siteId && siteId.trim().length > 0) {
         const sid = siteId.trim();
         try {
+          const did = deviceId?.trim();
           revocations = await syncRevocationsFromServer(database, {
             siteId: sid,
-            deviceId: deviceId?.trim(),
+            deviceId: did,
+            ...(did
+              ? {
+                  trustScore: DEVICE_TRUST_SCORE_TIER0,
+                  appVersion: APP_SEMVER,
+                }
+              : {}),
           });
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);

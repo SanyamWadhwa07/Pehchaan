@@ -15,7 +15,7 @@ Pehchaan authenticates construction workers **fully offline** using on-device fa
 | Anoushka | React Native + Backend |
 | Sanyam Wadhwa | ML / AI |
 
-**Day 1:** [docs/DAY1_PROGRESS.md](docs/DAY1_PROGRESS.md) · **Day 2 (Anoushka):** [docs/DAY2_TASKS.md](docs/DAY2_TASKS.md) · **Day 3 (Anoushka):** [docs/DAY3_TASKS.md](docs/DAY3_TASKS.md) · **Secrets sample:** [docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md](docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md) · **Policies:** [Key rotation](docs/POLICY_KEY_ROTATION.md) · [Biometric retention](docs/POLICY_BIOMETRIC_RETENTION.md) · **Storage + local DB (manual):** [docs/STORAGE_AND_WATERMELON_USER_TASKS.md](docs/STORAGE_AND_WATERMELON_USER_TASKS.md)
+**Day 1:** [docs/DAY1_PROGRESS.md](docs/DAY1_PROGRESS.md) · **Day 2 (Anoushka):** [docs/DAY2_TASKS.md](docs/DAY2_TASKS.md) · **Day 3 (Anoushka):** [docs/DAY3_TASKS.md](docs/DAY3_TASKS.md) · **Auth benchmarks (N6):** [docs/BENCHMARK_AUTH.md](docs/BENCHMARK_AUTH.md) · **Secrets sample:** [docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md](docs/SUPABASE_DASHBOARD_SECRETS_SAMPLE.md) · **Policies:** [Key rotation](docs/POLICY_KEY_ROTATION.md) · [Biometric retention](docs/POLICY_BIOMETRIC_RETENTION.md) · **Storage + local DB (manual):** [docs/STORAGE_AND_WATERMELON_USER_TASKS.md](docs/STORAGE_AND_WATERMELON_USER_TASKS.md)
 
 ---
 
@@ -60,9 +60,11 @@ Do not add the **service_role** key to `.env` — it would be bundled into the a
 ### Database
 ```bash
 # Apply migrations via Supabase CLI (see supabase/README.md).
-# Expect 001 (schema), 002 (RLS), 003 (storage bucket policies for site-packages).
+# Includes 001–007 baseline plus Day 4 additions (registration captures, attendance verified-on-ACK RPC).
 npx supabase db push
 ```
+
+Edge functions (after `npx supabase login` + `npx supabase link`): deploy all with `npx supabase functions deploy` — see **[supabase/README.md](supabase/README.md)**.
 
 ### Verify auth + RLS (optional)
 
@@ -71,6 +73,16 @@ From the project root, set `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and test credent
 ```bash
 npm run verify:auth-rls
 ```
+
+### Benchmark auth stages (N6)
+
+Runs **50** synthetic cycles (configurable) and prints **P50 / P95** per stage for the **Node harness** (JS orchestration analogue — not on-device TFLite). Details, env vars, and how this relates to **`ml/PROGRESS_SANYAM.md`**:
+
+```bash
+npm run benchmark:auth
+```
+
+See **[docs/BENCHMARK_AUTH.md](docs/BENCHMARK_AUTH.md)**.
 
 ### Run (Android)
 ```bash

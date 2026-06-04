@@ -54,7 +54,7 @@ Status as of merge to `main` after Sanyam’s ML branch + project-level camera/b
 | RN ↔ TFLite bridge | **PARTIAL** | Android registered; **iOS not in Xcode target** |
 | Site package download/decrypt/hydrate | **PARTIAL** | v1/v2 pipeline works; needs `SITE_PACKAGE_MASTER_KEY` + embeddings in package |
 | Supervisor visual confirmation | **DONE** | Confirm writes WMDB; integration push optional |
-| Offline attendance queue + sync | **PARTIAL** | Upload + backoff done; **verified/purged/purge-after-ACK missing** |
+| Offline attendance queue + sync | **PARTIAL** | Upload + backoff + **server `verified` + local `purged` tombstone** (N3 RPC + mirror); integration/DataLink still stubbed |
 | Benchmarks (measured) | **MISSING** | Desktop ML metrics exist; device table empty |
 
 ### 2.2 What actually works today
@@ -65,7 +65,7 @@ Status as of merge to `main` after Sanyam’s ML branch + project-level camera/b
 | **Android ML** | `FaceRecognitionModule.kt`: `checkFaceQuality`, `runInference`, `checkLiveness` | No `generateEmbedding`; `.tflite` gitignored (manual copy to `android/app/src/main/assets/`) |
 | **iOS ML** | Swift source files exist | Not compiled; no models in bundle; module name mismatch → always stub |
 | **Site package** | Download, v2 AES-GCM decrypt, unpack, hydrate workers | v1 packages have no embeddings; hydration skipped without master key |
-| **Sync** | `pending` → `uploading` → insert to Supabase; exponential backoff | No `verified`/`purged`; no purge-after-ACK; no revocation sync |
+| **Sync** | `pending` → `uploading` → RPC insert → server **`verified`** + `synced_at`; mirror → **`purged`** + `purged_at` (env defers purge until integration); exponential backoff | Revocation / full integration pipeline still thin vs prod |
 | **i18n** | en/hi complete, persisted language | No Settings on supervisor/enrollment stacks |
 | **Supervisor** | Confirm/Reject → local attendance queue | Supabase sync only mounted for `device` role session |
 
@@ -187,12 +187,12 @@ flowchart LR
 | N2 | **Registration outbox uploads captures** | `registrationOutboxSync.ts` sends `captured_angles_json` (or dedicated storage URLs if size requires) |
 | N3 | **Sync state machine complete** | After server ACK: `sync_status` → `verified` → local purge → `purged` + `purged_at` set; failed rows retry with backoff |
 | N4 | **`sync-revocations` edge function** | Device pulls revocations since `last_sync_at`; revoked embeddings removed from WMDB |
-| N5 | **Device metadata** | Update `devices.last_sync_at` on successful sync; `trust_score` write path (minimal viable for Tier 0) |
+| N5 | **Device metadata** | Update `devices.last_sync_at` on successful sync; `trust_score` write path (minimal viable for Tier 0) — **`sync-revocations`** patches row when `device_id` sent; app passes Tier‑0 score + `app_version` from `src/constants/appInfo.ts` |
 | N6 | **Benchmark harness + README** | **`npm run benchmark:auth`** (`scripts/benchmark-auth-stages.mjs`): 50 cycles → P50/P95 per stage; **[docs/BENCHMARK_AUTH.md](docs/BENCHMARK_AUTH.md)** + root **README** cover `.env`, models, Supabase, run commands |
 
 **Depends on:** S1 for embedding bytes format agreement (512-d float32 LE base64).
 
-**Key files:** `supabase/functions/register-worker/`, `src/services/sync/attendanceOutboxSync.ts`, `src/services/sync/registrationOutboxSync.ts`, `supabase/functions/sync-revocations/` (new), `README.md`
+**Key files:** `supabase/functions/register-worker/`, `src/services/sync/attendanceOutboxSync.ts`, `src/services/sync/registrationOutboxSync.ts`, `supabase/functions/sync-revocations/`, `src/services/sync/revocationRemoteSync.ts`, `README.md`
 
 ---
 

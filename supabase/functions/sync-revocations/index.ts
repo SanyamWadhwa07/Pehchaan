@@ -3,7 +3,9 @@
  *   `site_id` — defaults to `app_metadata.site_id` (device must match JWT).
  *   `since` — ISO timestamp; revocations strictly after this instant are returned.
  *             If omitted, uses `devices.last_sync_at` when `device_id` is provided, else epoch.
- *   `device_id` — when present, used for `since` default and optional `last_sync_at` bump.
+ *   `device_id` — when present, used for `since` default and device row patch after success.
+ *   `trust_score` — optional 0–1 (device Tier 0 self-report); applied with `last_sync_at` when `device_id` set.
+ *   `app_version` — optional semver string (max 64 chars); same patch.
  *
  * Auth: Bearer JWT — **device** role only (field terminals). `verify_jwt = true` in config.toml.
  *
@@ -37,6 +39,8 @@ type RequestBody = {
   site_id?: string;
   since?: string;
   device_id?: string;
+  trust_score?: number;
+  app_version?: string;
 };
 
 type RevEntry = { worker_id: string; revoked_at: string; reason?: string };
@@ -173,13 +177,27 @@ Deno.serve(async (req) => {
 
   if (body.device_id?.trim()) {
     const did = body.device_id.trim();
+    const patch: Record<string, string | number> = {
+      last_sync_at: new Date().toISOString(),
+    };
+    const ts = body.trust_score;
+    if (typeof ts === 'number' && Number.isFinite(ts)) {
+      patch.trust_score = Math.min(1, Math.max(0, ts));
+    }
+    const av = body.app_version;
+    if (typeof av === 'string') {
+      const v = av.trim().slice(0, 64);
+      if (v.length > 0) {
+        patch.app_version = v;
+      }
+    }
     const { error: bumpErr } = await admin
       .from('devices')
-      .update({ last_sync_at: new Date().toISOString() })
+      .update(patch)
       .eq('id', did)
       .eq('site_id', siteId);
     if (bumpErr) {
-      console.error('sync_revocations_last_sync_bump_failed', { code: bumpErr.code });
+      console.error('sync_revocations_device_metadata_failed', { code: bumpErr.code });
     }
   }
 

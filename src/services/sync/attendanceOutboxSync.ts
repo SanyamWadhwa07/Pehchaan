@@ -6,7 +6,7 @@
  * Canonical diagram and product decisions: **`docs/SYNC_STATE_MACHINE.md`**.
  * Idempotency / replay semantics: **`docs/OFFLINE_IDEMPOTENCY.md`**.
  *
- * **Happy path:** `pending` → `uploading` → *(server `pending`/`verified`)* → mirror → often **`purged`**
+ * **Happy path:** `pending` → `uploading` → *(server `verified` from **`insert_attendance_batch_idempotent`**)* → mirror → often **`purged`**
  * (tombstone; row kept with `purged_at` set — see purge policy below).
  *
  * **Retry path:** `failed` → *(exponential backoff elapsed)* → `pending` → …

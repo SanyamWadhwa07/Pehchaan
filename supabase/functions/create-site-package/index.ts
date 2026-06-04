@@ -177,7 +177,10 @@ Deno.serve(async (req) => {
   if (siteErr || !site) {
     return json(404, { error: 'site_not_found' });
   }
-  if (site.supervisor_id !== user.id) {
+
+  const pehchaanRole = String(user.app_metadata?.pehchaan_role ?? '').toLowerCase().trim();
+  const isAdmin = pehchaanRole === 'admin';
+  if (!isAdmin && site.supervisor_id !== user.id) {
     return json(403, { error: 'forbidden_not_supervisor_for_site' });
   }
 
