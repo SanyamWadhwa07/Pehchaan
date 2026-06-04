@@ -1,6 +1,7 @@
 import {requireSupabase} from '@/lib/supabase';
 import type {DeviceRow} from '@/lib/db/rows';
 
+/** Columns selected for supervisor / device list UIs. Device sync metadata (`last_sync_at`, `trust_score`, `app_version`) is written by Edge `sync-revocations` when the app sends `device_id` (see N5). */
 const DEV_COLUMNS =
   'id, supervisor_id, site_id, platform, app_version, revoked, last_sync_at, trust_score';
 

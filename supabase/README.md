@@ -31,7 +31,7 @@ Or paste `supabase/migrations/*.sql` in order into **SQL Editor** (Dashboard →
 |----------|---------|
 | `create-site-package` | POST `{ "site_id", "idempotency_key"?, "package_format"?, "worker_ids"? }` with **supervisor JWT**. **v2 (encrypted):** requires secrets `SITE_PACKAGE_MASTER_KEY` + `SUPABASE_SERVICE_ROLE_KEY` — builds inner JSON (incl. `embedding_encrypted` from DB), AES-256-GCM wrap, zip `manifest.json` + `payload.bin`, upload, DB bump. **v1:** plaintext manifest if master key unset. |
 | `register-worker` | POST `{ "registration_request_id" }` with **supervisor JWT** — approve registration + create worker (idempotent if already approved). |
-| `sync-revocations` | POST `{ "site_id"?, "since"?, "device_id"? }` with **device JWT** — returns revocations since watermark; optional **`device_id`** defaults `since` from `devices.last_sync_at` and bumps `last_sync_at` after success (service role). |
+| `sync-revocations` | POST `{ "site_id"?, "since"?, "device_id"?, "trust_score"?, "app_version"? }` with **device JWT** — returns revocations since watermark; with **`device_id`**, service role patches **`last_sync_at`** and optional **`trust_score`** / **`app_version`** (N5) after success. |
 | `store-worker-embedding` | POST `{ "worker_id", "embedding_base64" }` with **supervisor JWT** — decodes **512×float32 LE** (2048 bytes) into `workers.embedding_encrypted`, then invokes **`create-site-package`** so the new site zip includes the worker. |
 
 Deploy (requires CLI login + link):

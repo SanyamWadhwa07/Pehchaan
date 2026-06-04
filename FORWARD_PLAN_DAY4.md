@@ -187,8 +187,8 @@ flowchart LR
 | N2 | **Registration outbox uploads captures** | `registrationOutboxSync.ts` sends `captured_angles_json` (or dedicated storage URLs if size requires) |
 | N3 | **Sync state machine complete** | After server ACK: `sync_status` → `verified` → local purge → `purged` + `purged_at` set; failed rows retry with backoff |
 | N4 | **`sync-revocations` edge function** | Device pulls revocations since `last_sync_at`; revoked embeddings removed from WMDB |
-| N5 | **Device metadata** | Update `devices.last_sync_at` on successful sync; `trust_score` write path (minimal viable for Tier 0) |
-| N6 | **Benchmark harness + README** | Script: 50 auth cycles → P50/P95 per stage; README covers `.env`, models, Supabase, run commands |
+| N5 | **Device metadata** | Update `devices.last_sync_at` on successful sync; `trust_score` write path (minimal viable for Tier 0) — **`sync-revocations`** patches row when `device_id` sent; app passes Tier‑0 score + `app_version` from `src/constants/appInfo.ts` |
+| N6 | **Benchmark harness + README** | **`npm run benchmark:auth`** (`scripts/benchmark-auth-stages.mjs`): 50 cycles → P50/P95 per stage; **[docs/BENCHMARK_AUTH.md](docs/BENCHMARK_AUTH.md)** + root **README** cover `.env`, models, Supabase, run commands |
 
 **Depends on:** S1 for embedding bytes format agreement (512-d float32 LE base64).
 

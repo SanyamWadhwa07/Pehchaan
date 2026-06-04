@@ -190,7 +190,8 @@ paths:
       description: |
         Device JWT only. Returns `revocation_log` entries and `workers.revoked_at` changes strictly after `since`.
         When `device_id` is sent and `since` is omitted, the Edge function uses `devices.last_sync_at` for `since`
-        (epoch if null), then updates `devices.last_sync_at` after a successful query (N4 watermark).
+        (epoch if null), then patches **`devices.last_sync_at`**, optional **`trust_score`** / **`app_version`** (N5),
+        after a successful query (N4 watermark).
       security:
         - DeviceJWT: []
       requestBody:
@@ -212,7 +213,16 @@ paths:
                 device_id:
                   type: string
                   format: uuid
-                  description: Optional; enables server-side `since` default + `last_sync_at` bump after success.
+                  description: Optional; enables server-side `since` default + device row patch after success.
+                trust_score:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                  description: Optional device-reported trust (N5); applied with `last_sync_at` when `device_id` set.
+                app_version:
+                  type: string
+                  maxLength: 64
+                  description: Optional app semver for `devices.app_version` (N5).
       responses:
         '200':
           description: Revocations since watermark

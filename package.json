@@ -9,7 +9,8 @@
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "verify:auth-rls": "node scripts/verify-auth-rls.cjs",
-    "verify:roundtrip": "node scripts/verify-site-package-roundtrip.mjs"
+    "verify:roundtrip": "node scripts/verify-site-package-roundtrip.mjs",
+    "benchmark:auth": "node scripts/benchmark-auth-stages.mjs"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",

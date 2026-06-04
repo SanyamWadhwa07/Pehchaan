@@ -77,7 +77,7 @@ Runs **after** `pushPendingAttendanceOutbox` + `pushPendingRegistrationOutbox` +
 
 1. `pushPendingAttendanceOutbox`
 2. `pushPendingRegistrationOutbox` (parallel with 1 in `Promise.allSettled`)
-3. `syncRevocationsFromServer` (sequential after 1–2, if `siteId` present) — Edge `sync-revocations`; with `deviceId`, omit `since` so the server uses `devices.last_sync_at` as the watermark; updates WMDB workers (see [`OFFLINE_IDEMPOTENCY.md`](./OFFLINE_IDEMPOTENCY.md))
+3. `syncRevocationsFromServer` (sequential after 1–2, if `siteId` present) — Edge `sync-revocations`; with `deviceId`, omit `since` so the server uses `devices.last_sync_at` as the watermark; updates WMDB workers; with `deviceId` the app also sends Tier‑0 **`trust_score`** + **`app_version`** so Postgres **`devices`** row stays current (N5). See [`OFFLINE_IDEMPOTENCY.md`](./OFFLINE_IDEMPOTENCY.md).
 4. `reconcileAttendanceFromServer` (sequential after 3, if `siteId` present)
 
 Also triggered by: **AppState** `active`, **interval** timer, **NetInfo** connected.
