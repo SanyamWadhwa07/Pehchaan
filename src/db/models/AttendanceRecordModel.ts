@@ -27,4 +27,6 @@ export class AttendanceRecordModel extends Model {
   @field('retry_count') retryCount!: number;
   /** Unix ms timestamp of the last failure — used with `retry_count` to compute next eligible retry. */
   @field('last_error_at') lastErrorAt!: number | null;
+  /** UUID v4 generated once per logical tap — maps to Postgres `client_event_id` for idempotent sync. */
+  @field('client_event_id') clientEventId!: string | null;
 }

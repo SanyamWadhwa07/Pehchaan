@@ -49,6 +49,7 @@ export function attendanceFromRow(row: AttendanceRecordRow): AttendanceRecord {
     syncedAt: row.synced_at ?? undefined,
     purgedAt: row.purged_at ?? undefined,
     failReason: row.fail_reason ?? undefined,
+    clientEventId: row.client_event_id ?? undefined,
   };
 }
 
@@ -73,6 +74,7 @@ export function attendanceToRow(record: AttendanceRecord): AttendanceRecordRow {
     purged_at: record.purgedAt ?? null,
     fail_reason: record.failReason ?? null,
     integration_push_status: record.integrationPushStatus,
+    client_event_id: record.clientEventId ?? null,
   };
 }
 
