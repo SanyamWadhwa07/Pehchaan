@@ -50,6 +50,10 @@ jobs:
           print(f"Source: {ONNX_SRC.name} ({ONNX_SRC.stat().st_size/1e6:.1f} MB)")
           print("Step 1: FP32 ONNX -> TF SavedModel via onnx2tf...")
           import onnx2tf
+          import onnx2tf.utils.common_functions as _cf
+          # onnx2tf downloads a pickled .npy for internal validation — numpy
+          # refuses to load pickled arrays by default since 1.16.3. Patch it.
+          _cf.download_test_image_data = lambda: np.zeros((1, 3, 112, 112), dtype=np.float32)
           with tempfile.TemporaryDirectory() as tmp:
               onnx2tf.convert(
                   input_onnx_file_path=str(ONNX_SRC),
