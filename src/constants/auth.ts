@@ -1,16 +1,17 @@
 /**
- * Face authentication thresholds (Indian demographic model, cosine similarity).
- * @see CLAUDE.md — Adaptive auth
+ * Face authentication thresholds — TFLite INT8, cosine similarity, Indian demographic.
+ * Measured: 96.53% TAR / 0.54% FAR @ HIGH, 98.02% TAR / 2.69% FAR @ MEDIUM.
+ * @see ml/PROGRESS_SANYAM.md for full benchmark table.
  */
 
-/** Match with high confidence — single liveness challenge. */
-export const CONFIDENCE_THRESHOLD_HIGH = 0.92;
+/** High confidence — single liveness challenge. 96.53% TAR, 0.54% FAR. */
+export const CONFIDENCE_THRESHOLD_HIGH = 0.30;
 
-/** Match with medium confidence — two liveness challenges. */
-export const CONFIDENCE_THRESHOLD_MEDIUM = 0.8;
+/** Medium confidence — two liveness challenges. 98.02% TAR, 2.69% FAR. */
+export const CONFIDENCE_THRESHOLD_MEDIUM = 0.20;
 
 /** Minimum score to report any match from the native bridge. */
-export const CONFIDENCE_THRESHOLD_MINIMUM = 0.75;
+export const CONFIDENCE_THRESHOLD_MINIMUM = 0.18;
 
 /** Max liveness attempts before supervisor override prompt. */
 export const LIVENESS_MAX_ATTEMPTS = 3;

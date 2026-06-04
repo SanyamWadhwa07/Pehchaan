@@ -113,6 +113,10 @@ dependencies {
     implementation("com.facebook.react:flipper-integration")
     implementation project(':react-native-config')
 
+    // TFLite for on-device face recognition + BlazeFace liveness
+    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
